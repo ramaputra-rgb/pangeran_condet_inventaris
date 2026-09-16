@@ -1,18 +1,20 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FinishedGoodsController;
+use App\Http\Controllers\RawMaterialController;
+use App\Http\Controllers\ProductionBatchController;
+use App\Http\Controllers\MaterialPurchaseController;
 
-// Route untuk Halaman Login (Default Tampilan Pertama)
-Route::get('/', function () {
-    return view('auth.login');
-})->name('login');
+// Buat Antrean SPK Dapur
+Route::post('/production-batch', [ProductionBatchController::class, 'store'])->name('production-batch.store');
 
-// Route Login Gambar 2 (Split Screen)
-Route::get('/login-b', function () {
-    return view('auth.login_b');
-})->name('login.b');
+// Terima ke Fisik Gudang
+Route::patch('/production-batch/{id}/accept', [ProductionBatchController::class, 'acceptHandover'])->name('production-batch.accept');
 
-// Route untuk Halaman Dashboard
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->name('dashboard');
+// Rute Input Transaksi Masuk Bahan Baku
+Route::post('/raw-materials/purchase', [MaterialPurchaseController::class, 'store'])->name('raw-materials.purchase.store');
+
+Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/finished-goods', [FinishedGoodsController::class, 'index'])->name('finished-goods.index');
+Route::get('/raw-materials', [RawMaterialController::class, 'index'])->name('raw-materials.index');
