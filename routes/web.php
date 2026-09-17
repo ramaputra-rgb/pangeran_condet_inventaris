@@ -6,6 +6,8 @@ use App\Http\Controllers\RawMaterialController;
 use App\Http\Controllers\ProductionBatchController;
 use App\Http\Controllers\MaterialPurchaseController;
 
+Route::post('/finished-goods/{product}/allocate-po', [FinishedGoodsController::class, 'allocatePo'])->name('finished-goods.allocate-po');
+
 // Buat Antrean SPK Dapur
 Route::post('/production-batch', [ProductionBatchController::class, 'store'])->name('production-batch.store');
 
