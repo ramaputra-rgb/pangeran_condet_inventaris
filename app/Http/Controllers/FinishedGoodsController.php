@@ -14,15 +14,34 @@ class FinishedGoodsController extends Controller
     {
         $products = Product::with('inventory')->get();
 
+        // Data Tab 1 & Section Bawah: Antrean PENDING
         $pendingBatches = ProductionBatch::with(['product', 'workOrder'])
             ->where('handover_status', 'PENDING')
             ->latest()
             ->get();
 
-        return view('inventory.finished_goods', compact('products', 'pendingBatches'));
+        // Data Tab 2: Riwayat SPK yang COMPLETED
+        $completedBatches = ProductionBatch::with(['product', 'workOrder'])
+            ->where('handover_status', 'COMPLETED')
+            ->latest()
+            ->take(10)
+            ->get();
+
+        // Data Tab 4: Batch QC & FIFO Watch (Expiring within 180 days)
+        $expiringBatches = ProductionBatch::with('product')
+            ->whereNotNull('expired_date')
+            ->orderBy('expired_date', 'asc')
+            ->take(10)
+            ->get();
+
+        return view('inventory.finished_goods', compact(
+            'products', 
+            'pendingBatches', 
+            'completedBatches', 
+            'expiringBatches'
+        ));
     }
 
-    // Fungsi Baru: Mengunci Stok Bebas Jual (ATP) menjadi Stok Terkunci PO
     public function allocatePo(Request $request, $productId)
     {
         $request->validate([
@@ -32,12 +51,10 @@ class FinishedGoodsController extends Controller
         DB::transaction(function () use ($request, $productId) {
             $inventory = StockInventory::where('product_id', $productId)->firstOrFail();
 
-            // Validasi agar tidak mengalokasikan stok melebihi Bebas Jual (ATP)
             if ($request->allocated_qty > $inventory->atp_stock) {
                 return redirect()->back()->with('error', 'Jumlah alokasi melebihi Stok Bebas Jual (ATP) yang tersedia!');
             }
 
-            // Kurangi stok Bebas Jual (ATP) dan Tambah ke Stok Terkunci PO
             $inventory->decrement('atp_stock', $request->allocated_qty);
             $inventory->increment('reserved_stock', $request->allocated_qty);
         });

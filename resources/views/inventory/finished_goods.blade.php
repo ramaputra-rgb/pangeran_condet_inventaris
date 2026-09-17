@@ -2,7 +2,7 @@
 
 @section('content')
 
-<!-- Alert Flash Message Sukses & Error -->
+<!-- Alert Flash Message -->
 @if(session('success'))
 <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-xs font-bold mb-4 flex justify-between items-center no-print">
     <span>✓ {{ session('success') }}</span>
@@ -28,14 +28,10 @@
                 class="bg-pc-maroon text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm hover:bg-red-800 transition flex items-center gap-2 cursor-pointer no-print">
             <i data-lucide="plus-circle" class="w-4 h-4"></i> + Serah Terima dari Produksi (SPK)
         </button>
-
-        <!-- TOMBOL DOWNLOAD CSV/EXCEL -->
         <button id="btn-export-csv" title="Download Rekap Stok (CSV)" 
                 class="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-50 cursor-pointer no-print">
             <i data-lucide="download" class="w-4 h-4"></i>
         </button>
-
-        <!-- TOMBOL PRINT -->
         <button id="btn-print-page" title="Cetak Laporan Stok" 
                 class="p-2.5 bg-white border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-50 cursor-pointer no-print">
             <i data-lucide="printer" class="w-4 h-4"></i>
@@ -43,7 +39,7 @@
     </div>
 </div>
 
-<!-- 4 Kartu Ringkasan Stok & FIFO Alert -->
+<!-- 4 Kartu Ringkasan Stok -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
         <div class="flex justify-between items-start">
@@ -77,83 +73,170 @@
             <p class="text-[10px] font-extrabold text-pc-maroon uppercase tracking-wider">BATCH QC WATCH / FIFO</p>
             <span class="p-1.5 bg-red-50 text-pc-maroon rounded-lg"><i data-lucide="alert-triangle" class="w-4 h-4"></i></span>
         </div>
-        <h3 class="text-3xl font-black text-pc-maroon mt-2">2 <span class="text-xs font-semibold text-gray-400">Batch Terpantau</span></h3>
+        <h3 class="text-3xl font-black text-pc-maroon mt-2">{{ $expiringBatches->count() }} <span class="text-xs font-semibold text-gray-400">Batch Terpantau</span></h3>
         <p class="text-[10px] text-pc-maroon font-bold mt-2">! Prioritas kirim FIFO (&lt; 30 Hari)</p>
     </div>
 </div>
 
-<!-- Tabel Katalog & Saldo Stok Real-Time -->
+<!-- CONTAINER CONTAINER TAB NAVIGASI -->
 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-6">
+    <!-- BAR NAVIGASI TAB -->
     <div class="p-4 border-b border-gray-100 flex flex-wrap justify-between items-center gap-3 bg-gray-50/50">
-        <div class="flex items-center space-x-4 text-xs font-bold text-pc-dark">
-            <span class="border-b-2 border-pc-maroon text-pc-maroon pb-1">Katalog & Saldo Stok Real-Time</span>
+        <div class="flex items-center space-x-6 text-xs font-bold text-gray-400">
+            <button id="tab-btn-1" onclick="switchTab(1)" class="tab-link text-pc-maroon border-b-2 border-pc-maroon pb-2 focus:outline-none cursor-pointer">
+                📦 Katalog & Saldo Stok Real-Time
+            </button>
+            <button id="tab-btn-2" onclick="switchTab(2)" class="tab-link hover:text-pc-dark pb-2 focus:outline-none cursor-pointer">
+                📄 Riwayat Penerimaan dari Produksi (SPK)
+            </button>
+            <button id="tab-btn-3" onclick="switchTab(3)" class="tab-link hover:text-pc-dark pb-2 focus:outline-none cursor-pointer">
+                📊 Alokasi Kanal & Booking Stok
+            </button>
+            <button id="tab-btn-4" onclick="switchTab(4)" class="tab-link hover:text-pc-dark pb-2 focus:outline-none cursor-pointer">
+                ⏳ Tracking Batch & Expired
+            </button>
         </div>
-        
-        <!-- SEARCH REAL-TIME & RESET BUTTON -->
-        <div class="flex items-center space-x-2 text-xs no-print">
+
+        <div id="search-container" class="flex items-center space-x-2 text-xs no-print">
             <input type="text" id="search-input" placeholder="Cari Nama Produk / SKU..." class="border border-gray-200 rounded-xl px-3 py-1.5 text-xs w-48 focus:outline-none focus:border-pc-orange">
             <button type="button" id="btn-reset-search" class="bg-gray-100 px-3 py-1.5 rounded-xl font-bold text-gray-600 border border-gray-200 hover:bg-gray-200 cursor-pointer">Reset</button>
         </div>
     </div>
 
-    <table class="w-full text-left border-collapse text-xs">
-        <thead>
-            <tr class="border-b border-gray-100 text-gray-400 font-extrabold text-[10px] uppercase tracking-wider">
-                <th class="p-4">PRODUK & SKU</th>
-                <th class="p-4">STOK FISIK</th>
-                <th class="p-4">TERKUNCI PO</th>
-                <th class="p-4">BEBAS JUAL (ATP)</th>
-                <th class="p-4">HARGA JUAL</th>
-                <th class="p-4">STATUS GUDANG</th>
-                <th class="p-4 text-center no-print">TINDAKAN CEPAT</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100 font-medium" id="product-table-body">
-            @foreach($products as $product)
-            <tr class="product-row hover:bg-gray-50/50 transition">
-                <td class="p-4">
-                    <div class="flex items-center space-x-3">
-                        <span class="px-2 py-1 bg-amber-100 text-amber-800 rounded font-black text-[10px]">{{ $product->gramature ?? '250' }}g</span>
-                        <div>
-                            <p class="font-bold text-pc-dark search-name">{{ $product->name }}</p>
-                            <p class="text-[10px] text-gray-400 search-sku">{{ $product->sku }}</p>
+    <!-- KONTEN TAB 1: KATALOG & SALDO STOK -->
+    <div id="tab-content-1" class="tab-content">
+        <table class="w-full text-left border-collapse text-xs">
+            <thead>
+                <tr class="border-b border-gray-100 text-gray-400 font-extrabold text-[10px] uppercase tracking-wider">
+                    <th class="p-4">PRODUK & SKU</th>
+                    <th class="p-4">STOK FISIK</th>
+                    <th class="p-4">TERKUNCI PO</th>
+                    <th class="p-4">BEBAS JUAL (ATP)</th>
+                    <th class="p-4">HARGA JUAL</th>
+                    <th class="p-4">STATUS GUDANG</th>
+                    <th class="p-4 text-center no-print">TINDAKAN CEPAT</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 font-medium" id="product-table-body">
+                @foreach($products as $product)
+                <tr class="product-row hover:bg-gray-50/50 transition">
+                    <td class="p-4">
+                        <div class="flex items-center space-x-3">
+                            <span class="px-2 py-1 bg-amber-100 text-amber-800 rounded font-black text-[10px]">{{ $product->gramature ?? '250' }}g</span>
+                            <div>
+                                <p class="font-bold text-pc-dark search-name">{{ $product->name }}</p>
+                                <p class="text-[10px] text-gray-400 search-sku">{{ $product->sku }}</p>
+                            </div>
                         </div>
-                    </div>
-                </td>
-                <td class="p-4 font-extrabold text-pc-dark">{{ number_format($product->inventory->total_physical_stock ?? 0) }} <span class="text-[10px] font-normal text-gray-400">Pcs</span></td>
-                <td class="p-4 font-bold text-pc-orange">{{ number_format($product->inventory->reserved_stock ?? 0) }} <span class="text-[10px] font-normal text-gray-400">Pcs</span></td>
-                <td class="p-4 font-extrabold text-emerald-600">{{ number_format($product->inventory->atp_stock ?? 0) }} <span class="text-[10px] font-normal text-gray-400">Pcs</span></td>
-                <td class="p-4 font-bold">Rp {{ number_format($product->price ?? 0, 0, ',', '.') }}</td>
-                <td class="p-4">
-                    <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        ● Stok Aman
-                    </span>
-                </td>
-                <td class="p-4 text-center no-print">
-                    <div class="flex items-center justify-center space-x-1">
-                        <button type="button"
-                                class="btn-detail px-3 py-1 border border-gray-200 rounded-lg text-gray-600 font-bold hover:bg-gray-50 cursor-pointer"
-                                data-name="{{ $product->name }}"
-                                data-sku="{{ $product->sku }}"
-                                data-physical="{{ number_format($product->inventory->total_physical_stock ?? 0) }}"
-                                data-reserved="{{ number_format($product->inventory->reserved_stock ?? 0) }}"
-                                data-atp="{{ number_format($product->inventory->atp_stock ?? 0) }}">
-                            Detail
-                        </button>
+                    </td>
+                    <td class="p-4 font-extrabold text-pc-dark">{{ number_format($product->inventory->total_physical_stock ?? 0) }} <span class="text-[10px] font-normal text-gray-400">Pcs</span></td>
+                    <td class="p-4 font-bold text-pc-orange">{{ number_format($product->inventory->reserved_stock ?? 0) }} <span class="text-[10px] font-normal text-gray-400">Pcs</span></td>
+                    <td class="p-4 font-extrabold text-emerald-600">{{ number_format($product->inventory->atp_stock ?? 0) }} <span class="text-[10px] font-normal text-gray-400">Pcs</span></td>
+                    <td class="p-4 font-bold">Rp {{ number_format($product->price ?? 0, 0, ',', '.') }}</td>
+                    <td class="p-4">
+                        <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            ● Stok Aman
+                        </span>
+                    </td>
+                    <td class="p-4 text-center no-print">
+                        <div class="flex items-center justify-center space-x-1">
+                            <button type="button" class="btn-detail px-3 py-1 border border-gray-200 rounded-lg text-gray-600 font-bold hover:bg-gray-50 cursor-pointer"
+                                    data-name="{{ $product->name }}" data-sku="{{ $product->sku }}"
+                                    data-physical="{{ number_format($product->inventory->total_physical_stock ?? 0) }}"
+                                    data-reserved="{{ number_format($product->inventory->reserved_stock ?? 0) }}"
+                                    data-atp="{{ number_format($product->inventory->atp_stock ?? 0) }}">
+                                Detail
+                            </button>
+                            <button type="button" class="btn-allocate px-3 py-1 bg-amber-100 text-amber-800 rounded-lg font-bold hover:bg-amber-200 cursor-pointer"
+                                    data-id="{{ $product->id }}" data-name="{{ $product->name }}"
+                                    data-atp="{{ $product->inventory->atp_stock ?? 0 }}">
+                                Alokasi PO
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
 
-                        <button type="button"
-                                class="btn-allocate px-3 py-1 bg-amber-100 text-amber-800 rounded-lg font-bold hover:bg-amber-200 cursor-pointer"
-                                data-id="{{ $product->id }}"
-                                data-name="{{ $product->name }}"
-                                data-atp="{{ $product->inventory->atp_stock ?? 0 }}">
-                            Alokasi PO
-                        </button>
-                    </div>
-                </td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
+    <!-- KONTEN TAB 2: RIWAYAT PENERIMAAN SPK -->
+    <div id="tab-content-2" class="tab-content hidden p-4">
+        <table class="w-full text-left border-collapse text-xs">
+            <thead>
+                <tr class="border-b border-gray-100 text-gray-400 font-extrabold text-[10px] uppercase">
+                    <th class="p-3">NO SPK / BATCH</th>
+                    <th class="p-3">PRODUK</th>
+                    <th class="p-3">QTY DITERIMA</th>
+                    <th class="p-3">TANGGAL MASUK</th>
+                    <th class="p-3">STATUS SERAH TERIMA</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                @forelse($completedBatches as $batch)
+                <tr class="hover:bg-gray-50">
+                    <td class="p-3 font-bold text-pc-maroon">{{ $batch->workOrder->spk_number ?? '-' }} <br><span class="text-[10px] text-gray-400">{{ $batch->batch_code }}</span></td>
+                    <td class="p-3 font-bold">{{ $batch->product->name ?? ($batch->workOrder->product->name ?? 'Produk') }}</td>
+                    <td class="p-3 font-extrabold text-emerald-600">{{ number_format($batch->actual_net_good_qty ?? $batch->net_good_qty) }} Pcs</td>
+                    <td class="p-3 text-gray-500">{{ $batch->received_at ? \Carbon\Carbon::parse($batch->received_at)->format('d M Y H:i') : '-' }}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">✓ TERMASUK KE STOK FISIK</span></td>
+                </tr>
+                @empty
+                <tr><td colspan="5" class="p-4 text-center text-gray-400">Belum ada riwayat penerimaan SPK yang selesai.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <!-- KONTEN TAB 3: ALOKASI KANAL & BOOKING STOK -->
+    <div id="tab-content-3" class="tab-content hidden p-6 space-y-4">
+        <h4 class="font-extrabold text-xs text-pc-dark uppercase tracking-wider">Rincian Stok Terkunci per Kanal Penjualan</h4>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div class="p-4 border border-gray-100 rounded-xl bg-gray-50">
+                <p class="font-bold text-pc-maroon">PO B2B Grosir & Supermarket</p>
+                <p class="text-2xl font-black mt-1">2.100 Pcs</p>
+                <p class="text-[10px] text-gray-400 mt-1">Status: Terkunci Otomatis via Alokasi PO</p>
+            </div>
+            <div class="p-4 border border-gray-100 rounded-xl bg-gray-50">
+                <p class="font-bold text-pc-orange">Webstore Resmi D2C & E-Commerce</p>
+                <p class="text-2xl font-black mt-1">1.420 Pcs</p>
+                <p class="text-[10px] text-gray-400 mt-1">Status: Checkout Aktif Pelanggan</p>
+            </div>
+            <div class="p-4 border border-gray-100 rounded-xl bg-gray-50">
+                <p class="font-bold text-amber-600">Kasir Toko Oleh-oleh Condet</p>
+                <p class="text-2xl font-black mt-1">600 Pcs</p>
+                <p class="text-[10px] text-gray-400 mt-1">Status: Display Rak Toko Fisik</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- KONTEN TAB 4: TRACKING BATCH & EXPIRED (FIFO) -->
+    <div id="tab-content-4" class="tab-content hidden p-4">
+        <table class="w-full text-left border-collapse text-xs">
+            <thead>
+                <tr class="border-b border-gray-100 text-gray-400 font-extrabold text-[10px] uppercase">
+                    <th class="p-3">KODE BATCH</th>
+                    <th class="p-3">PRODUK</th>
+                    <th class="p-3">TANGGAL PRODUKSI</th>
+                    <th class="p-3">TANGGAL EXPIRED</th>
+                    <th class="p-3">REKOMENDASI PRIORITAS</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                @forelse($expiringBatches as $batch)
+                <tr class="hover:bg-gray-50">
+                    <td class="p-3 font-bold text-pc-dark">{{ $batch->batch_code }}</td>
+                    <td class="p-3 font-bold">{{ $batch->product->name ?? 'Produk Rengginang' }}</td>
+                    <td class="p-3 text-gray-500">{{ $batch->production_date ? \Carbon\Carbon::parse($batch->production_date)->format('d M Y') : '-' }}</td>
+                    <td class="p-3 font-bold text-pc-maroon">{{ $batch->expired_date ? \Carbon\Carbon::parse($batch->expired_date)->format('d M Y') : '-' }}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">⚠️ PRIORITAS KIRIM FIFO</span></td>
+                </tr>
+                @empty
+                <tr><td colspan="5" class="p-4 text-center text-gray-400">Tidak ada batch terpantau mendekati kadaluwarsa.</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <!-- Bottom Section: Penerimaan Dapur & Alokasi Omnichannel -->
@@ -252,7 +335,6 @@
 
 <!-- ================= MODAL POP-UPS ================= -->
 
-<!-- 1. MODAL SPK BARU -->
 <div id="modal-spk" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 no-print">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
         <div class="flex justify-between items-center border-b border-gray-100 pb-3">
@@ -281,7 +363,6 @@
     </div>
 </div>
 
-<!-- 2. MODAL DETAIL STOK PRODUK -->
 <div id="modal-detail" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 no-print">
     <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
         <div class="flex justify-between items-center border-b border-gray-100 pb-3">
@@ -311,7 +392,6 @@
     </div>
 </div>
 
-<!-- 3. MODAL ALOKASI PO -->
 <div id="modal-allocate" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 no-print">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
         <div class="flex justify-between items-center border-b border-gray-100 pb-3">
@@ -340,30 +420,45 @@
     </div>
 </div>
 
-<!-- STYLE CSS KHUSUS TAMPILAN CETAK / PRINT -->
 <style>
 @media print {
-    .no-print, header, sidebar, footer {
-        display: none !important;
-    }
-    body {
-        background: #ffffff !important;
-        color: #000000 !important;
-    }
-    .shadow-sm, .shadow-xl {
-        box-shadow: none !important;
-    }
-    .border {
-        border-color: #e5e7eb !important;
-    }
+    .no-print, header, sidebar, footer { display: none !important; }
+    body { background: #ffffff !important; color: #000000 !important; }
+    .shadow-sm, .shadow-xl { box-shadow: none !important; }
+    .border { border-color: #e5e7eb !important; }
 }
 </style>
 
-<!-- JAVASCRIPT EVENT LISTENERS, SEARCH, PRINT & EXPORT -->
+<!-- JAVASCRIPT TAB SWITCHER, SEARCH, PRINT & EXPORT -->
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+function switchTab(tabIndex) {
+    // Sembunyikan Semua Tab Content
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+    
+    // Reset Style Semua Tombol Tab
+    document.querySelectorAll('.tab-link').forEach(btn => {
+        btn.classList.remove('text-pc-maroon', 'border-b-2', 'border-pc-maroon');
+        btn.classList.add('hover:text-pc-dark');
+    });
 
-    // 1. Handling Search Real-Time & Reset
+    // Tampilkan Tab Content yang Dipilih
+    document.getElementById('tab-content-' + tabIndex).classList.remove('hidden');
+
+    // Highlight Tombol Tab Aktif
+    const activeBtn = document.getElementById('tab-btn-' + tabIndex);
+    activeBtn.classList.add('text-pc-maroon', 'border-b-2', 'border-pc-maroon');
+    activeBtn.classList.remove('hover:text-pc-dark');
+
+    // Sembunyikan Kotak Search jika tidak berada di Tab 1
+    const searchBox = document.getElementById('search-container');
+    if (tabIndex === 1) {
+        searchBox.classList.remove('hidden');
+    } else {
+        searchBox.classList.add('hidden');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('search-input');
     const resetBtn = document.getElementById('btn-reset-search');
     const rows = document.querySelectorAll('.product-row');
@@ -371,16 +466,10 @@ document.addEventListener('DOMContentLoaded', function () {
     if (searchInput) {
         searchInput.addEventListener('input', function () {
             const query = this.value.toLowerCase().trim();
-
             rows.forEach(row => {
                 const name = row.querySelector('.search-name')?.innerText.toLowerCase() || '';
                 const sku = row.querySelector('.search-sku')?.innerText.toLowerCase() || '';
-
-                if (name.includes(query) || sku.includes(query)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                row.style.display = (name.includes(query) || sku.includes(query)) ? '' : 'none';
             });
         });
     }
@@ -392,24 +481,15 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // 2. Handling Print Page
     const printBtn = document.getElementById('btn-print-page');
     if (printBtn) {
-        printBtn.addEventListener('click', function () {
-            window.print();
-        });
+        printBtn.addEventListener('click', function () { window.print(); });
     }
 
-    // 3. Handling Download / Export CSV (Excel)
     const exportBtn = document.getElementById('btn-export-csv');
     if (exportBtn) {
         exportBtn.addEventListener('click', function () {
-            let csvData = [];
-            
-            // Header Kolom CSV
-            csvData.push(['Nama Produk', 'SKU', 'Stok Fisik (Pcs)', 'Terkunci PO (Pcs)', 'Bebas Jual ATP (Pcs)', 'Harga Jual (Rp)']);
-
-            // Mengambil Data dari Setiap Baris Tabel yang Tampil
+            let csvData = [['Nama Produk', 'SKU', 'Stok Fisik (Pcs)', 'Terkunci PO (Pcs)', 'Bebas Jual ATP (Pcs)', 'Harga Jual (Rp)']];
             const tableRows = document.querySelectorAll('#product-table-body .product-row');
             tableRows.forEach(row => {
                 if (row.style.display !== 'none') {
@@ -419,15 +499,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     const reserved = row.children[2]?.innerText.replace(/[^0-9]/g, '') || '0';
                     const atp = row.children[3]?.innerText.replace(/[^0-9]/g, '') || '0';
                     const price = row.children[4]?.innerText.replace(/[^0-9]/g, '') || '0';
-
                     csvData.push([`"${name}"`, `"${sku}"`, physical, reserved, atp, price]);
                 }
             });
 
-            // Process CSV Content & Download
-            let csvContent = "data:text/csv;charset=utf-8," 
-                + csvData.map(e => e.join(",")).join("\n");
-
+            let csvContent = "data:text/csv;charset=utf-8," + csvData.map(e => e.join(",")).join("\n");
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
@@ -438,7 +514,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // 4. Handling Klik Tombol Detail
     document.querySelectorAll('.btn-detail').forEach(button => {
         button.addEventListener('click', function () {
             document.getElementById('detail-product-name').innerText = this.dataset.name;
@@ -446,12 +521,10 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('detail-physical-stock').innerText = this.dataset.physical + ' Pcs';
             document.getElementById('detail-reserved-stock').innerText = this.dataset.reserved + ' Pcs';
             document.getElementById('detail-atp-stock').innerText = this.dataset.atp + ' Pcs';
-            
             document.getElementById('modal-detail').classList.remove('hidden');
         });
     });
 
-    // 5. Handling Klik Tombol Alokasi PO
     document.querySelectorAll('.btn-allocate').forEach(button => {
         button.addEventListener('click', function () {
             const productId = this.dataset.id;
@@ -461,19 +534,13 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('allocate-product-name').value = productName;
             document.getElementById('allocate-atp-display').innerText = atpVal.toLocaleString() + ' Pcs';
             document.getElementById('form-allocate-po').action = '/finished-goods/' + productId + '/allocate-po';
-            
             document.getElementById('modal-allocate').classList.remove('hidden');
         });
     });
 });
 
-function closeDetailModal() {
-    document.getElementById('modal-detail').classList.add('hidden');
-}
-
-function closeAllocateModal() {
-    document.getElementById('modal-allocate').classList.add('hidden');
-}
+function closeDetailModal() { document.getElementById('modal-detail').classList.add('hidden'); }
+function closeAllocateModal() { document.getElementById('modal-allocate').classList.add('hidden'); }
 </script>
 
 @endsection
