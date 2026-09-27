@@ -16,6 +16,7 @@ return new class extends Migration
             $table->integer('jml_grade_A')->default(0);
             $table->integer('jml_grade_B')->default(0);
             $table->foreignId('no_po_produk')->constrained('po_produk', 'no_po_produk')->onDelete('cascade');
+            $table->text('ket')->nullable(); // Ditambahkan untuk catatan kendala dapur
             $table->timestamps();
         });
     }

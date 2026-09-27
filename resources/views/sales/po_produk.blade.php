@@ -113,8 +113,13 @@
                 <td class="p-4 text-center font-black text-pc-maroon text-sm">
                     {{ number_format($po->jumlah_po) }} Pcs
                 </td>
-                <td class="p-4 font-bold text-gray-500">
-                    {{ \Carbon\Carbon::parse($po->tgl_jatuh_tempo_po)->format('d M Y') }}
+                <td class="p-4">
+                    <p class="font-extrabold text-pc-dark text-xs">
+                        Tgl PO: {{ \Carbon\Carbon::parse($po->tgl_po ?? $po->created_at)->format('d M Y') }}
+                    </p>
+                    <p class="text-[10px] text-gray-400 font-medium mt-0.5">
+                        Jatuh Tempo: {{ \Carbon\Carbon::parse($po->tgl_jatuh_tempo_po)->format('d M Y') }}
+                    </p>
                 </td>
                 <td class="p-4 text-center">
                     @if($po->status_po === 'PENDING')
@@ -181,6 +186,10 @@
                 <div>
                     <label class="font-bold text-gray-700 block mb-1">Jumlah Pesanan (Pcs)</label>
                     <input type="number" name="jumlah_po" required placeholder="100" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange">
+                </div>
+                <div>
+                    <label class="font-bold text-gray-700 block mb-1">Tanggal PO Terbit</label>
+                    <input type="date" name="tgl_po" value="{{ date('Y-m-d') }}" required class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange">
                 </div>
                 <div>
                     <label class="font-bold text-gray-700 block mb-1">Tgl Jatuh Tempo PO</label>

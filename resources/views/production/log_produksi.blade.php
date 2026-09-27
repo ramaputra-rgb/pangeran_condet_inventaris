@@ -87,6 +87,12 @@
                 <td class="p-4">
                     <p class="font-black text-pc-dark">BATCH-00{{ $log->no_batch }}</p>
                     <p class="text-[10px] text-gray-400">{{ \Carbon\Carbon::parse($log->tgl_produksi)->format('d M Y') }} • {{ $log->waktu_produksi }}</p>
+                    
+                    @if($log->ket)
+                        <p class="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-0.5 mt-1 inline-block">
+                            📝 Catatan: {{ $log->ket }}
+                        </p>
+                    @endif
                 </td>
                 <td class="p-4">
                     <p class="font-bold text-pc-dark">{{ $log->poProduk->nama_pelanggan ?? '-' }}</p>
@@ -139,6 +145,11 @@
                         <option value="{{ $po->no_po_produk }}">PO #{{ $po->no_po_produk }} - {{ $po->nama_pelanggan }} (Target: {{ $po->jumlah_po }} Pcs)</option>
                     @endforeach
                 </select>
+            </div>
+
+            <div>
+                <label class="font-bold text-gray-700 block mb-1">Catatan / Kendala Batch (Opsional)</label>
+                <textarea name="ket" rows="2" placeholder="Misal: Kendala alat penggorengan / Adonan renyah" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange"></textarea>
             </div>
 
             <div class="grid grid-cols-3 gap-3">

@@ -84,31 +84,45 @@
         </thead>
         <tbody class="divide-y divide-gray-100 font-medium">
             @forelse($products as $prod)
+            @php
+                // Hitung total alokasi PO khusus untuk produk ini
+                $stokTerkunci = $prod->detailAlokasiPo->sum('jml_alokasi');
+                $stokBebasJual = max(0, $prod->stok - $stokTerkunci);
+            @endphp
             <tr class="hover:bg-gray-50/50">
+                <!-- 1. ID SKU -->
                 <td class="p-4 font-bold text-pc-dark">FG-00{{ $prod->id_produk_jadi }}</td>
+                
+                <!-- 2. NAMA PRODUK & VARIAN (Dibersihkan dari badge stok) -->
                 <td class="p-4">
-                    @php
-                        // Hitung total alokasi PO khusus untuk produk ini
-                        $stokTerkunci = $prod->detailAlokasiPo->sum('jml_alokasi');
-                        $stokBebasJual = max(0, $prod->stok - $stokTerkunci);
-                    @endphp
-                    <p class="font-black text-emerald-600 text-sm">{{ number_format($prod->stok) }} Pcs <span class="text-[10px] text-gray-400 font-normal">(Fisik)</span></p>
-                    <div class="flex items-center gap-2 mt-1 text-[10px]">
-                        <span class="font-extrabold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                    <p class="font-black text-pc-dark text-sm">{{ $prod->nama_produk }}</p>
+                    <p class="text-[10px] text-gray-400 font-medium mt-0.5">Varian: {{ $prod->varian }}</p>
+                </td>
+                
+                <!-- 3. NETTO -->
+                <td class="p-4 font-semibold text-gray-500">{{ $prod->netto }}</td>
+                
+                <!-- 4. HARGA JUAL -->
+                <td class="p-4 font-bold text-pc-dark">
+                    Rp {{ number_format($prod->harga_jual ?? 0, 0, ',', '.') }}
+                </td>
+                
+                <!-- 5. STOK AKTUAL & ALOKASI PO (Badge stok ditaruh di sini secara rapi) -->
+                <td class="p-4">
+                    <p class="font-black text-emerald-600 text-sm">
+                        {{ number_format($prod->stok) }} <span class="text-[10px] text-gray-400 font-normal">Pcs (Fisik)</span>
+                    </p>
+                    <div class="flex items-center gap-1.5 mt-1 text-[10px]">
+                        <span class="font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                             🔒 Terkunci PO: {{ number_format($stokTerkunci) }}
                         </span>
-                        <span class="font-extrabold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                        <span class="font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
                             ✅ ATP: {{ number_format($stokBebasJual) }}
                         </span>
                     </div>
                 </td>
-                <td class="p-4 font-semibold text-gray-500">{{ $prod->netto }}</td>
-                <td class="p-4 font-bold text-pc-dark">
-                    Rp {{ number_format($prod->harga_jual ?? 0, 0, ',', '.') }}
-                </td>
-                <td class="p-4 font-black text-emerald-600 text-sm">
-                    {{ number_format($prod->stok) }} Pcs
-                </td>
+                
+                <!-- 6. STATUS KATEGORI -->
                 <td class="p-4 text-center">
                     @if(str_contains(strtolower($prod->nama_produk), 'remahan') || str_contains(strtolower($prod->varian), 'remahan'))
                         <span class="px-2.5 py-1 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200">
@@ -120,6 +134,8 @@
                         </span>
                     @endif
                 </td>
+                
+                <!-- 7. AKSI -->
                 <td class="p-4 text-center no-print">
                     <button onclick="openAdjustModal('{{ $prod->id_produk_jadi }}', '{{ $prod->nama_produk }}')" 
                             class="px-3 py-1.5 bg-pc-cream text-pc-maroon border border-pc-orange/20 rounded-lg text-[10px] font-bold hover:bg-amber-100 inline-flex items-center gap-1 cursor-pointer">

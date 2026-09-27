@@ -16,6 +16,7 @@ class PoProduk extends Model
         'nama_pelanggan',
         'tipe_jual',
         'jumlah_po',
+        'tgl_po',
         'tgl_jatuh_tempo_po',
         'status_po',
         'alamat_pelanggan',

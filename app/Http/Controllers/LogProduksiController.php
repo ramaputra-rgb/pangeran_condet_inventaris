@@ -54,10 +54,11 @@ class LogProduksiController extends Controller
             'id_produk_grade_B' => 'nullable',
             'bahan_ids'         => 'required|array',
             'bahan_qty'         => 'required|array',
+            'ket'               => 'nullable|string', // Tambahkan validasi ket
         ]);
 
         DB::transaction(function () use ($request) {
-            // 1. Simpan Header Log Produksi
+            // 1. Simpan Header Log Produksi (Termasuk 'ket')
             $log = LogProduksi::create([
                 'no_po_produk'    => $request->no_po_produk,
                 'tgl_produksi'    => $request->tgl_produksi,
@@ -65,20 +66,19 @@ class LogProduksiController extends Controller
                 'waktu_produksi'  => $request->waktu_produksi,
                 'jml_grade_A'     => $request->jml_grade_A,
                 'jml_grade_B'     => $request->jml_grade_B,
+                'ket'             => $request->ket, // Pastikan 'ket' disimpan ke DB
             ]);
 
-            // 2. Pemotongan Stok Bahan Baku Manual per Batch
+            // 2. Pemotongan Stok Bahan Baku
             foreach ($request->bahan_ids as $index => $idBahan) {
                 $qtyPakai = $request->bahan_qty[$index] ?? 0;
                 if ($idBahan && $qtyPakai > 0) {
                     $log->bahanProduksi()->attach($idBahan, ['qty_dipakai' => $qtyPakai]);
-
-                    // Potong Stok Fisik Bahan Produksi
                     BahanProduksi::where('id_bahan', $idBahan)->decrement('qty_stok', $qtyPakai);
                 }
             }
 
-            // 3. Tambah Stok Produk Jadi Grade A
+            // 3. Tambah Stok Grade A
             if ($request->jml_grade_A > 0) {
                 DetailProduksi::create([
                     'id_produk_jadi'  => $request->id_produk_grade_A,
@@ -90,7 +90,7 @@ class LogProduksiController extends Controller
                     ->increment('stok', $request->jml_grade_A);
             }
 
-            // 4. Tambah Stok Produk Jadi Grade B (Varian Remahan)
+            // 4. Tambah Stok Grade B (Remahan)
             if ($request->jml_grade_B > 0 && $request->id_produk_grade_B) {
                 DetailProduksi::create([
                     'id_produk_jadi'  => $request->id_produk_grade_B,
@@ -102,12 +102,11 @@ class LogProduksiController extends Controller
                     ->increment('stok', $request->jml_grade_B);
             }
 
-            // Update Status PO menjadi PROSES
             PoProduk::where('no_po_produk', $request->no_po_produk)
                 ->update(['status_po' => 'PROSES']);
         });
 
         return redirect()->route('log-produksi.index')
-                         ->with('success', 'Batch Log Produksi & QC berhasil disimpan. Stok bahan baku terpotong dan produk jadi bertambah!');
+                        ->with('success', 'Batch Log Produksi & QC berhasil disimpan!');
     }
 }

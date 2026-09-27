@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('nama_pelanggan');
             $table->string('tipe_jual'); // Grosir/Eceran/Toko
             $table->integer('jumlah_po');
+            $table->date('tgl_po')->default(now()); // Ditambahkan untuk tanggal terbit PO
             $table->date('tgl_jatuh_tempo_po');
             $table->string('status_po')->default('PENDING'); // PENDING, PROSES, DIKIRIM, SELESAI
             $table->text('alamat_pelanggan');

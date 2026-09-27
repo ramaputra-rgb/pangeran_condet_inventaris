@@ -44,6 +44,7 @@ class PoProdukController extends Controller
             'nama_pelanggan'     => 'required|string|max:255',
             'tipe_jual'          => 'required|string',
             'jumlah_po'          => 'required|integer|min:1',
+            'tgl_po'             => 'required|date', // Tambahkan validasi tgl_po
             'tgl_jatuh_tempo_po' => 'required|date',
             'alamat_pelanggan'   => 'required|string',
             'id_produk_jadi'     => 'required',
@@ -51,11 +52,12 @@ class PoProdukController extends Controller
         ]);
 
         DB::transaction(function () use ($request) {
-            // 1. Simpan Header PO Produk
+            // 1. Simpan Header PO Produk (Termasuk 'tgl_po')
             $po = PoProduk::create([
                 'nama_pelanggan'     => $request->nama_pelanggan,
                 'tipe_jual'          => $request->tipe_jual,
                 'jumlah_po'          => $request->jumlah_po,
+                'tgl_po'             => $request->tgl_po, // Pastikan tgl_po disimpan
                 'tgl_jatuh_tempo_po' => $request->tgl_jatuh_tempo_po,
                 'status_po'          => 'PENDING',
                 'alamat_pelanggan'   => $request->alamat_pelanggan,
@@ -71,7 +73,7 @@ class PoProdukController extends Controller
         });
 
         return redirect()->route('po-produk.index')
-                         ->with('success', 'Pesanan PO Pelanggan berhasil dicatat dan alokasi produk telah dikunci!');
+                        ->with('success', 'Pesanan PO Pelanggan berhasil dicatat dan alokasi produk telah dikunci!');
     }
 
     public function updateStatus(Request $request, $id)
