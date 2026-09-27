@@ -3,77 +3,57 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\ProductionBatch;
-use App\Models\WorkOrder;
-use App\Models\StockInventory;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
+use App\Models\ProdukJadi;
+use App\Models\BatchProduksi;
+use Illuminate\Support\Str;
 
 class ProductionBatchController extends Controller
 {
-    // 1. Buat Antrean SPK Produksi & Batch Baru dari Dapur
     public function store(Request $request)
     {
+        // 1. Validasi Input
         $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'product_id'          => 'required|exists:produk_jadi,id_produk',
             'actual_net_good_qty' => 'required|integer|min:1',
+            'id_spk'              => 'nullable|exists:work_order_spk,id_spk',
         ]);
 
-        DB::transaction(function () use ($request) {
-            // A. Buat Work Order (SPK) Otomatis
-            $workOrder = WorkOrder::create([
-                'spk_number'   => 'SPK-' . date('Ym') . '-' . rand(100, 999),
-                'product_id'   => $request->product_id,
-                'target_qty'   => $request->actual_net_good_qty,
-                'kitchen_area' => 'Dapur Condet Utama',
-                'status'       => 'SELESAI',
-            ]);
+        // 2. Buat Batch Produksi Baru
+        BatchProduksi::create([
+            'id_spk'              => $request->input('id_spk'), // Bernilai NULL jika tidak dikirim dari form
+            'id_produk'           => $request->product_id,
+            'kode_batch'          => 'BATCH-' . strtoupper(Str::random(6)),
+            'jumlah_goreng_pcs'   => $request->actual_net_good_qty, // Disamakan dengan Qty Pass QC
+            'jumlah_bagus_qc_pcs' => $request->actual_net_good_qty,
+            'status_serah_terima' => 'PENDING',
+            'tanggal_produksi'    => now(),
+            'tanggal_expired'     => now()->addMonths(6),
+        ]);
 
-            // B. Buat Production Batch Lengkap
-            ProductionBatch::create([
-                'work_order_id'       => $workOrder->id,
-                'product_id'          => $request->product_id,
-                'batch_code'          => 'B-SPK-' . date('Ymd') . '-' . rand(100, 999),
-                'total_dapur_qty'     => $request->actual_net_good_qty,
-                'net_good_qty'        => $request->actual_net_good_qty,
-                'actual_net_good_qty' => $request->actual_net_good_qty,
-                'production_date'     => now(),
-                'expired_date'        => Carbon::now()->addMonths(6),
-                'handover_status'     => 'PENDING',
-            ]);
-        });
-
-        return redirect()->back()->with('success', 'Antrean SPK berhasil dibuat! Silakan klik "+ Terima ke Fisik Gudang" untuk memutasi stok.');
+        return redirect()->route('finished-goods.index')
+                         ->with('success', 'Antrean SPK Dapur berhasil dibuat! Menunggu verifikasi masuk gudang.');
     }
 
-    // 2. Terima ke Fisik Gudang (Mutasi Stok Real-Time)
-    public function acceptHandover(Request $request, $id)
+    public function accept($id)
     {
-        DB::transaction(function () use ($id) {
-            $batch = ProductionBatch::findOrFail($id);
+        // 3. Terima Batch ke Fisik Gudang & Tambah Stok
+        $batch = BatchProduksi::findOrFail($id);
 
-            if ($batch->handover_status === 'COMPLETED') {
-                return;
-            }
+        if ($batch->status_serah_terima === 'COMPLETED') {
+            return redirect()->back()->with('error', 'Batch ini sudah diterima di gudang sebelumnya.');
+        }
 
-            $addedQty = $batch->actual_net_good_qty ?? ($batch->net_good_qty ?? $batch->total_dapur_qty);
+        $batch->update([
+            'status_serah_terima'  => 'COMPLETED',
+            'diterima_gudang_pada' => now(),
+        ]);
 
-            // Tambah Stok Fisik dan ATP di Gudang FG
-            $inventory = StockInventory::firstOrCreate(
-                ['product_id' => $batch->product_id],
-                ['total_physical_stock' => 0, 'reserved_stock' => 0, 'atp_stock' => 0, 'status_gudang' => 'STOK_AMAN']
-            );
+        // Otomatis Tambah Stok Fisik & Stok ATP Produk Jadi
+        $product = ProdukJadi::findOrFail($batch->id_produk);
+        $product->increment('stok_fisik', $batch->jumlah_bagus_qc_pcs);
+        $product->increment('stok_bebas_jual_atp', $batch->jumlah_bagus_qc_pcs);
 
-            $inventory->increment('total_physical_stock', $addedQty);
-            $inventory->increment('atp_stock', $addedQty);
-
-            // Update Status Batch
-            $batch->update([
-                'handover_status' => 'COMPLETED',
-                'received_at'     => now(),
-            ]);
-        });
-
-        return redirect()->back()->with('success', 'Stok hasil produksi berhasil masuk ke Fisik Gudang!');
+        return redirect()->route('finished-goods.index')
+                         ->with('success', "Batch {$batch->kode_batch} berhasil diterima! Stok fisik {$product->nama_produk} bertambah {$batch->jumlah_bagus_qc_pcs} Pcs.");
     }
 }

@@ -1,277 +1,153 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard - Pangeran Condet')
-
-@section('styles')
-<style>
-    .dashboard-container {
-        width: 100%;
-        display: block;
-    }
-
-    /* Header Bar Sejajar Presisi */
-    .header-wrapper {
-        display: flex !important;
-        flex-direction: row !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        width: 100% !important;
-        padding-bottom: 14px;
-        margin-bottom: 24px;
-        border-bottom: 2px solid #F47C20;
-    }
-
-    .header-wrapper h1 {
-        color: #FFFFFF;
-        font-size: 26px;
-        font-weight: 700;
-        margin: 0 !important;
-        padding: 0 !important;
-        line-height: 1;
-    }
-
-    .search-box-right {
-        width: 240px;
-        position: relative;
-    }
-
-    .search-box-right input {
-        width: 100%;
-        background: #FFFFFF;
-        border: none;
-        padding: 9px 36px 9px 16px;
-        border-radius: 8px;
-        font-size: 12.5px;
-        color: #333333;
-        outline: none;
-        box-sizing: border-box;
-    }
-
-    .search-box-right i {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #888888;
-        font-size: 13px;
-        pointer-events: none;
-    }
-
-    /* 4 Top Card Menyamping (Paksa Flexbox Row) */
-    .metrics-row {
-        display: flex !important;
-        flex-direction: row !important;
-        gap: 16px !important;
-        margin-bottom: 24px !important;
-        width: 100% !important;
-    }
-
-    .m-card {
-        flex: 1 !important; /* Membuat ke-4 card memiliki lebar yang persis sama */
-        background: #FFFFFF;
-        border-radius: 12px;
-        padding: 16px 20px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        box-sizing: border-box;
-    }
-
-    .m-card-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        background-color: #FFF3E0;
-        color: #F47C20;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        flex-shrink: 0;
-    }
-
-    .m-card-info p {
-        font-size: 12px;
-        font-weight: 600;
-        color: #4E2A13;
-        margin: 0;
-    }
-
-    .m-card-info h2 {
-        font-size: 30px;
-        font-weight: 700;
-        color: #222222;
-        line-height: 1;
-        margin-top: 4px;
-    }
-
-    /* 4 Main Widgets Grid (Paksa 2 Kolom) */
-    .widgets-row {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr !important;
-        gap: 20px !important;
-        width: 100% !important;
-    }
-
-    .w-card {
-        background: #FFFFFF;
-        border-radius: 14px;
-        padding: 20px;
-        min-height: 240px;
-        box-sizing: border-box;
-    }
-
-    .w-title {
-        font-size: 14.5px;
-        font-weight: 700;
-        color: #8E1515;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .w-title i {
-        font-size: 16px;
-        color: #F47C20;
-    }
-
-    .stock-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
-        border-bottom: 1px solid #F5F5F5;
-        font-size: 12px;
-        font-weight: 600;
-        color: #333;
-    }
-
-    .badge-qty {
-        background-color: #FFCDD2;
-        color: #B71C1C;
-        padding: 2px 10px;
-        border-radius: 6px;
-        font-weight: 700;
-        font-size: 11px;
-    }
-
-    .list-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 12px;
-        padding: 8px 0;
-        color: #444;
-        font-weight: 600;
-        border-bottom: 1px solid #F8F8F8;
-    }
-</style>
-@endsection
-
 @section('content')
-<div class="dashboard-container">
-    <!-- Header Top Bar -->
-    <div class="header-wrapper">
-        <h1>Dashboard</h1>
-        <div class="search-box-right">
-            <input type="text" placeholder="Cari Produk">
-            <i class="fa-solid fa-magnifying-glass"></i>
-        </div>
+
+<!-- Header Dashboard -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div>
+        <h2 class="text-2xl font-black text-pc-dark">Dashboard Eksekutif ERP</h2>
+        <p class="text-xs text-gray-400 mt-0.5">Pusat kendali dan pemantauan real-time alur rantai pasok UD Pangeran Condet.</p>
     </div>
-
-    <!-- 4 Top Cards (Menyamping Sejajar) -->
-    <div class="metrics-row">
-        <div class="m-card">
-            <div class="m-card-icon"><i class="fa-solid fa-box-open"></i></div>
-            <div class="m-card-info">
-                <p>Total Produk</p>
-                <h2>18</h2>
-            </div>
-        </div>
-        <div class="m-card">
-            <div class="m-card-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
-            <div class="m-card-info">
-                <p>Total Stok</p>
-                <h2>200</h2>
-            </div>
-        </div>
-        <div class="m-card">
-            <div class="m-card-icon"><i class="fa-solid fa-arrow-right-to-bracket"></i></div>
-            <div class="m-card-info">
-                <p>Produk Masuk</p>
-                <h2>30</h2>
-            </div>
-        </div>
-        <div class="m-card">
-            <div class="m-card-icon"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
-            <div class="m-card-info">
-                <p>Produk Keluar</p>
-                <h2>10</h2>
-            </div>
-        </div>
-    </div>
-
-    <!-- 4 Main Widgets Grid -->
-    <div class="widgets-row">
-        <div class="w-card">
-            <div class="w-title"><i class="fa-solid fa-chart-line"></i> Pergerakan Stok</div>
-            <div style="height: 160px; display: flex; justify-content: center; align-items: center; color: #aaa; font-size: 12px;">
-                [ Area Grafik Line Chart ]
-            </div>
-        </div>
-
-        <div class="w-card">
-            <div class="w-title"><i class="fa-solid fa-triangle-exclamation" style="color: #E53935;"></i> Peringatan Stok Menipis</div>
-            <div class="stock-row">
-                <span>#104 Rengginang Bawang 100 Gram</span>
-                <span class="badge-qty">8 pcs</span>
-            </div>
-            <div class="stock-row">
-                <span>#102 Rengginang Cumi 100 Gram</span>
-                <span class="badge-qty">8 pcs</span>
-            </div>
-            <div class="stock-row">
-                <span>#101 Rengginang Ikan 360 Gram</span>
-                <span class="badge-qty">8 pcs</span>
-            </div>
-            <div class="stock-row">
-                <span>#103 Rengginang Original 100 Gram</span>
-                <span class="badge-qty">8 pcs</span>
-            </div>
-        </div>
-
-        <div class="w-card">
-            <div class="w-title"><i class="fa-solid fa-clock-rotate-left"></i> Aktivitas Terbaru</div>
-            <div class="list-item">
-                <span>Produk Masuk - Rengginang Ikan 100 Gram</span>
-                <span style="color: #2E7D32; font-weight:700;">+50 pcs</span>
-            </div>
-            <div class="list-item">
-                <span>Produk Keluar - Rengginang Cumi 100 Gram</span>
-                <span style="color: #C62828; font-weight:700;">-10 pcs</span>
-            </div>
-            <div class="list-item">
-                <span>Retur - Rengginang Cumi 100 Gram</span>
-                <span style="color: #555; font-weight:700;">2 pcs</span>
-            </div>
-        </div>
-
-        <div class="w-card">
-            <div class="w-title"><i class="fa-solid fa-trophy" style="color: #FFC107;"></i> Produk Terlaris</div>
-            <div class="list-item">
-                <span>#101 Rengginang Ikan 360 Gram</span>
-                <span style="font-weight:700;">50 pcs</span>
-            </div>
-            <div class="list-item">
-                <span>#102 Rengginang Cumi 100 Gram</span>
-                <span style="font-weight:700;">30 pcs</span>
-            </div>
-            <div class="list-item">
-                <span>#103 Rengginang Original 200 Gram</span>
-                <span style="font-weight:700;">28 pcs</span>
-            </div>
-        </div>
+    <div class="flex items-center space-x-3 no-print">
+        <span class="px-4 py-2 bg-pc-cream text-pc-maroon font-extrabold text-xs rounded-2xl border border-pc-orange/20 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+            Sistem ERP Aktif Terintegrasi
+        </span>
     </div>
 </div>
+
+<!-- 4 Kartu Metrics Utama -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+    <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm border-l-4 border-l-pc-maroon">
+        <div class="flex justify-between items-start">
+            <p class="text-[10px] font-extrabold text-pc-maroon uppercase tracking-wider">PESANAN PO AKTIF</p>
+            <span class="p-1.5 bg-red-50 text-pc-maroon rounded-lg"><i data-lucide="shopping-bag" class="w-4 h-4"></i></span>
+        </div>
+        <h3 class="text-2xl font-black text-pc-dark mt-2">{{ $poActiveCount ?? 0 }} <span class="text-xs font-semibold text-gray-400">PO Active</span></h3>
+        <p class="text-[10px] text-pc-maroon font-bold mt-2">⚡ Menunggu & Dalam Proses Dapur</p>
+    </div>
+
+    <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm border-l-4 border-l-emerald-500">
+        <div class="flex justify-between items-start">
+            <p class="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider">STOK FISIK READY (FG)</p>
+            <span class="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"><i data-lucide="boxes" class="w-4 h-4"></i></span>
+        </div>
+        <h3 class="text-2xl font-black text-emerald-600 mt-2">{{ number_format($totalStokFg ?? 0) }} <span class="text-xs font-semibold text-gray-400">Pcs/Pack</span></h3>
+        <p class="text-[10px] text-gray-400 font-medium mt-2">Nilai Aset: Rp {{ number_format($totalNilaiAsetFg ?? 0, 0, ',', '.') }}</p>
+    </div>
+
+    <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm border-l-4 border-l-amber-500">
+        <div class="flex justify-between items-start">
+            <p class="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider">TOTAL QC GRADE A (PUNCH)</p>
+            <span class="p-1.5 bg-amber-50 text-amber-600 rounded-lg"><i data-lucide="check-circle-2" class="w-4 h-4"></i></span>
+        </div>
+        <h3 class="text-2xl font-black text-pc-dark mt-2">{{ number_format($totalGradeA ?? 0) }} <span class="text-xs font-semibold text-gray-400">Pcs</span></h3>
+        <p class="text-[10px] text-amber-600 font-bold mt-2">Grade B Remahan: {{ number_format($totalGradeB ?? 0) }} Pack</p>
+    </div>
+
+    <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm border-l-4 border-l-purple-500">
+        <div class="flex justify-between items-start">
+            <p class="text-[10px] font-extrabold text-purple-600 uppercase tracking-wider">ARMADA PENGIRIMAN</p>
+            <span class="p-1.5 bg-purple-50 text-purple-600 rounded-lg"><i data-lucide="truck" class="w-4 h-4"></i></span>
+        </div>
+        <h3 class="text-2xl font-black text-purple-700 mt-2">{{ $pengirimanProses ?? 0 }} <span class="text-xs font-semibold text-gray-400">Dalam Perjalanan</span></h3>
+        <p class="text-[10px] text-purple-600 font-bold mt-2">🚚 Kurir Sedang Menuju Lokasi</p>
+    </div>
+</div>
+
+<!-- Ringkasan Alert & Quick Actions -->
+@if(($stokKritisCount ?? 0) > 0)
+<div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-between">
+    <div class="flex items-center gap-3">
+        <span class="p-2 bg-red-100 text-pc-maroon rounded-xl"><i data-lucide="alert-triangle" class="w-5 h-5"></i></span>
+        <div>
+            <h4 class="text-xs font-extrabold text-pc-maroon">Peringatan Stok Bahan Produksi Kritis!</h4>
+            <p class="text-[11px] text-red-700">Terdapat {{ $stokKritisCount }} bahan baku yang stoknya berada di bawah batas minimum (<= 10 unit).</p>
+        </div>
+    </div>
+    <a href="{{ route('raw-materials.index') }}" class="px-4 py-2 bg-pc-maroon text-white font-extrabold text-xs rounded-xl hover:bg-red-800 transition">
+        Belanja Bahan Baku Now
+    </a>
+</div>
+@endif
+
+<!-- Grid 2 Kolom: Aktivitas Batch Produksi & PO Pelanggan Terbaru -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+    
+    <!-- Kolom Kiri: Batch Produksi QC Terbaru -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <span class="text-xs font-bold text-pc-dark">Batch Produksi Dapur Terbaru</span>
+            <a href="{{ route('log-produksi.index') }}" class="text-[10px] font-extrabold text-pc-maroon hover:underline">Lihat Semua →</a>
+        </div>
+
+        <table class="w-full text-left border-collapse text-xs">
+            <thead>
+                <tr class="border-b border-gray-100 text-gray-400 font-extrabold text-[10px] uppercase tracking-wider bg-gray-50/30">
+                    <th class="p-3">NO. BATCH</th>
+                    <th class="p-3">PO ACUAN</th>
+                    <th class="p-3 text-center">GRADE A</th>
+                    <th class="p-3 text-center">GRADE B</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 font-medium">
+                @forelse($recentLogProduksi as $log)
+                <tr class="hover:bg-gray-50/50">
+                    <td class="p-3 font-bold text-pc-dark">BATCH-00{{ $log->no_batch }}</td>
+                    <td class="p-3 text-gray-600 font-semibold">{{ $log->poProduk->nama_pelanggan ?? 'PO #'.$log->no_po_produk }}</td>
+                    <td class="p-3 text-center font-black text-emerald-600">+{{ number_format($log->jml_grade_A) }} Pcs</td>
+                    <td class="p-3 text-center font-black text-pc-orange">+{{ number_format($log->jml_grade_B) }} Pack</td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="4" class="p-4 text-center text-gray-400">Belum ada aktivitas produksi.</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Kolom Kanan: PO Pelanggan Terbaru -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <span class="text-xs font-bold text-pc-dark">Pesanan PO Pelanggan Masuk Terbaru</span>
+            <a href="{{ route('po-produk.index') }}" class="text-[10px] font-extrabold text-pc-maroon hover:underline">Lihat Semua →</a>
+        </div>
+
+        <table class="w-full text-left border-collapse text-xs">
+            <thead>
+                <tr class="border-b border-gray-100 text-gray-400 font-extrabold text-[10px] uppercase tracking-wider bg-gray-50/30">
+                    <th class="p-3">NO. PO</th>
+                    <th class="p-3">PELANGGAN</th>
+                    <th class="p-3 text-center">QTY PO</th>
+                    <th class="p-3 text-center">STATUS</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 font-medium">
+                @forelse($recentPoList as $po)
+                <tr class="hover:bg-gray-50/50">
+                    <td class="p-3 font-bold text-pc-dark">PO-00{{ $po->no_po_produk }}</td>
+                    <td class="p-3 font-bold text-pc-dark">{{ $po->nama_pelanggan }}</td>
+                    <td class="p-3 text-center font-black text-pc-maroon">{{ number_format($po->jumlah_po) }} Pcs</td>
+                    <td class="p-3 text-center">
+                        @if($po->status_po === 'PENDING')
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800">PENDING</span>
+                        @elseif($po->status_po === 'PROSES')
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-100 text-blue-800">PROSES</span>
+                        @else
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-50 text-emerald-700">SELESAI</span>
+                        @endif
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="4" class="p-4 text-center text-gray-400">Belum ada pesanan PO masuk.</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
 @endsection

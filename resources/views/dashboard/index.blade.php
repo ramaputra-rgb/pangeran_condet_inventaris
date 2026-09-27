@@ -107,7 +107,7 @@
             <p class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">TOTAL STOK FISIK</p>
             <span class="p-1.5 bg-pc-cream rounded-lg text-pc-maroon"><i data-lucide="archive" class="w-4 h-4"></i></span>
         </div>
-        <h3 class="text-3xl font-black text-pc-dark mt-2">{{ number_format($totalPhysical) }} <span class="text-xs font-semibold text-gray-400">Pcs</span></h3>
+        <h3 class="text-3xl font-black text-pc-dark mt-2">{{ number_format($totalPhysical ?? 0) }} <span class="text-xs font-semibold text-gray-400">Pcs</span></h3>
         <p class="text-[10px] font-bold text-emerald-600 mt-3 flex items-center gap-1">
             <i data-lucide="trending-up" class="w-3 h-3"></i> +650 Pcs serah terima batch ini
         </p>
@@ -118,7 +118,7 @@
             <p class="text-[10px] font-extrabold text-pc-orange uppercase tracking-wider">TERKUNCI PESANAN</p>
             <span class="p-1.5 bg-amber-50 rounded-lg text-pc-orange"><i data-lucide="lock" class="w-4 h-4"></i></span>
         </div>
-        <h3 class="text-3xl font-black text-pc-orange mt-2">{{ number_format($totalReserved) }} <span class="text-xs font-semibold text-gray-400">Pcs</span></h3>
+        <h3 class="text-3xl font-black text-pc-orange mt-2">{{ number_format($totalReserved ?? 0) }} <span class="text-xs font-semibold text-gray-400">Pcs</span></h3>
         <p class="text-[10px] text-gray-400 font-medium mt-3">B2B: 2.100 | Web: 1.420 | Toko: 600</p>
     </div>
 
@@ -127,7 +127,7 @@
             <p class="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider">BEBAS JUAL (ATP)</p>
             <span class="p-1.5 bg-emerald-50 rounded-lg text-emerald-600"><i data-lucide="check-circle" class="w-4 h-4"></i></span>
         </div>
-        <h3 class="text-3xl font-black text-emerald-600 mt-2">{{ number_format($totalATP) }} <span class="text-xs font-semibold text-gray-400">Pcs</span></h3>
+        <h3 class="text-3xl font-black text-emerald-600 mt-2">{{ number_format($totalATP ?? 0) }} <span class="text-xs font-semibold text-gray-400">Pcs</span></h3>
         <p class="text-[10px] text-emerald-600 font-bold mt-3">✓ Siap dialokasikan seketika</p>
     </div>
 

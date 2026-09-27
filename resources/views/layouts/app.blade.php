@@ -67,63 +67,34 @@
 
                     <!-- Group 1: MANAJEMEN INVENTARIS -->
                     <div class="space-y-1">
-                        <p class="px-3.5 text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">MANAJEMEN INVENTARIS</p>
-                        
+                        <a href="{{ route('raw-materials.index') }}" 
+                           class="flex items-center space-x-3 px-3.5 py-2 rounded-xl transition {{ request()->routeIs('raw-materials.index') ? 'bg-pc-cream text-pc-maroon font-bold border border-pc-orange/20' : 'text-gray-600 hover:bg-gray-50' }}">
+                            <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                            <span>Pengadaan & Stok Bahan Produksi</span>
+                        </a>
+
+                        <a href="{{ route('log-produksi.index') }}" 
+                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-gray-600 hover:bg-gray-50 transition">
+                            <i data-lucide="history" class="w-4 h-4"></i>
+                            <span>Log Produksi & Quality Control</span>
+                        </a>
+
                         <a href="{{ route('finished-goods.index') }}" 
                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl transition {{ request()->routeIs('finished-goods.index') ? 'bg-pc-cream text-pc-maroon font-bold border border-pc-orange/20' : 'text-gray-600 hover:bg-gray-50' }}">
                             <i data-lucide="package-check" class="w-4 h-4"></i>
                             <span>Stok Produk Jadi (FG)</span>
                         </a>
 
-                        <a href="{{ route('raw-materials.index') }}" 
-                           class="flex items-center space-x-3 px-3.5 py-2 rounded-xl transition {{ request()->routeIs('raw-materials.index') ? 'bg-pc-cream text-pc-maroon font-bold border border-pc-orange/20' : 'text-gray-600 hover:bg-gray-50' }}">
+                        <a href="{{ route('po-produk.index') }}" 
+                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-gray-600 hover:bg-gray-50 transition">
                             <i data-lucide="shopping-cart" class="w-4 h-4"></i>
-                            <span>Pengadaan & Bahan Baku</span>
+                            <span>Pesanan PO Pelanggan</span>
                         </a>
 
-                        <a href="#" class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-gray-600 hover:bg-gray-50 transition">
-                            <i data-lucide="shopping-bag" class="w-4 h-4"></i>
-                            <span>Pesanan PO & Toko / E-Com</span>
-                        </a>
-
-                        <a href="#" class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-gray-600 hover:bg-gray-50 transition">
-                            <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
-                            <span>Mutasi Keluar & Masuk</span>
-                        </a>
-
-                        <a href="#" class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-gray-600 hover:bg-gray-50 transition">
+                        <a href="{{ route('shipments.index') }}" 
+                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-gray-600 hover:bg-gray-50 transition">
                             <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                            <span>Laporan Omset & Stok</span>
-                        </a>
-                    </div>
-
-                    <!-- Group 2: MANAJEMEN PRODUKSI -->
-                    <div class="space-y-1">
-                        <p class="px-3.5 text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">MANAJEMEN PRODUKSI</p>
-                        
-                        <a href="#" class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-gray-600 hover:bg-gray-50 transition">
-                            <i data-lucide="scroll-text" class="w-4 h-4"></i>
-                            <span>Formula BoM & Resep</span>
-                        </a>
-
-                        <a href="#" class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-gray-600 hover:bg-gray-50 transition">
-                            <i data-lucide="clipboard-list" class="w-4 h-4"></i>
-                            <span>Work Order Produksi</span>
-                        </a>
-
-                        <a href="#" class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-gray-600 hover:bg-gray-50 transition">
-                            <i data-lucide="history" class="w-4 h-4"></i>
-                            <span>Log Batch Produksi</span>
-                        </a>
-                    </div>
-
-                    <!-- Group 3: INTEGRASI SALURAN -->
-                    <div class="space-y-1">
-                        <p class="px-3.5 text-[9px] font-extrabold text-gray-400 uppercase tracking-wider">INTEGRASI SALURAN</p>
-                        
-                        <a href="#" class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-gray-600 hover:bg-gray-50 transition">
-                            <i data-lucide="store" class="w-4 h-4"></i>
-                            <span>Webstore & Kasir POS</span>
+                            <span>Pengiriman & Surat Jalan</span>
                         </a>
                     </div>
                 </nav>

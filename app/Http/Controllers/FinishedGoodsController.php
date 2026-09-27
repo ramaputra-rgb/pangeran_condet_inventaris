@@ -3,62 +3,69 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Product;
-use App\Models\ProductionBatch;
-use App\Models\StockInventory;
+use App\Models\ProdukJadi;
+use App\Models\DetailProduksi;
+use App\Models\DetailAlokasiPo;
 use Illuminate\Support\Facades\DB;
 
 class FinishedGoodsController extends Controller
 {
     public function index()
     {
-        $products = Product::with('inventory')->get();
+        // Ambil Data Produk Jadi beserta Relasinya
+        $products = ProdukJadi::with(['detailProduksi.logProduksi', 'detailAlokasiPo.poProduk'])->get();
 
-        // Data Tab 1 & Section Bawah: Antrean PENDING
-        $pendingBatches = ProductionBatch::with(['product', 'workOrder'])
-            ->where('handover_status', 'PENDING')
-            ->latest()
-            ->get();
+        // Indikator Top-Bar Ringkasan
+        $totalStokFisik   = $products->sum('stok');
+        $totalVarian      = $products->count();
+        $totalNilaiAset   = $products->sum(function ($p) {
+            return $p->stok * $p->harga_jual;
+        });
 
-        // Data Tab 2: Riwayat SPK yang COMPLETED
-        $completedBatches = ProductionBatch::with(['product', 'workOrder'])
-            ->where('handover_status', 'COMPLETED')
-            ->latest()
-            ->take(10)
-            ->get();
-
-        // Data Tab 4: Batch QC & FIFO Watch (Expiring within 180 days)
-        $expiringBatches = ProductionBatch::with('product')
-            ->whereNotNull('expired_date')
-            ->orderBy('expired_date', 'asc')
-            ->take(10)
-            ->get();
+        // Hitung total alokasi PO yang terikat
+        $totalAlokasiPo   = DetailAlokasiPo::sum('jml_alokasi');
 
         return view('inventory.finished_goods', compact(
-            'products', 
-            'pendingBatches', 
-            'completedBatches', 
-            'expiringBatches'
+            'products',
+            'totalStokFisik',
+            'totalVarian',
+            'totalNilaiAset',
+            'totalAlokasiPo'
         ));
     }
 
-    public function allocatePo(Request $request, $productId)
+    public function storeProduct(Request $request)
     {
         $request->validate([
-            'allocated_qty' => 'required|integer|min:1',
+            'nama_produk' => 'required|string|max:255',
+            'varian'      => 'required|string|max:255',
+            'netto'       => 'required|string|max:50',
+            'harga_jual'  => 'required|numeric|min:0',
+            'stok'        => 'required|integer|min:0',
         ]);
 
-        DB::transaction(function () use ($request, $productId) {
-            $inventory = StockInventory::where('product_id', $productId)->firstOrFail();
+        ProdukJadi::create([
+            'nama_produk' => $request->nama_produk,
+            'varian'      => $request->varian,
+            'netto'       => $request->netto,
+            'harga_jual'  => $request->harga_jual,
+            'stok'        => $request->stok,
+        ]);
 
-            if ($request->allocated_qty > $inventory->atp_stock) {
-                return redirect()->back()->with('error', 'Jumlah alokasi melebihi Stok Bebas Jual (ATP) yang tersedia!');
-            }
+        return redirect()->route('finished-goods.index')
+                         ->with('success', 'Master Produk Jadi baru berhasil ditambahkan!');
+    }
 
-            $inventory->decrement('atp_stock', $request->allocated_qty);
-            $inventory->increment('reserved_stock', $request->allocated_qty);
-        });
+    public function updateStock(Request $request, $id)
+    {
+        $request->validate([
+            'stok_tambahan' => 'required|integer',
+        ]);
 
-        return redirect()->back()->with('success', 'Berhasil mengalokasikan stok untuk pesanan PO!');
+        $product = ProdukJadi::findOrFail($id);
+        $product->increment('stok', $request->stok_tambahan);
+
+        return redirect()->route('finished-goods.index')
+                         ->with('success', 'Penyesuaian stok produk jadi berhasil diperbarui!');
     }
 }
