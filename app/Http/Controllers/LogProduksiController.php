@@ -4,41 +4,22 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\LogProduksi;
-use App\Models\PoProduk;
+use App\Models\DetailProduksi;
 use App\Models\BahanProduksi;
 use App\Models\ProdukJadi;
-use App\Models\DetailProduksi;
+use App\Models\PoProduk;
 use Illuminate\Support\Facades\DB;
 
 class LogProduksiController extends Controller
 {
     public function index()
     {
-        // Ambil Log Produksi beserta Relasinya
-        $logProduksi = LogProduksi::with(['poProduk', 'bahanProduksi', 'detailProduksi.produkJadi'])
-                        ->latest()
-                        ->get();
+        $logs      = LogProduksi::with(['poProduk', 'bahanProduksi', 'detailProduksi.produkJadi'])->latest()->get();
+        $poActive  = PoProduk::whereIn('status_po', ['PENDING', 'PROSES'])->get();
+        $bahanList = BahanProduksi::all();
+        $products  = ProdukJadi::all();
 
-        $poActive     = PoProduk::whereIn('status_po', ['PENDING', 'PROSES'])->get();
-        $rawMaterials = BahanProduksi::all();
-        $products     = ProdukJadi::all();
-
-        // Indikator Top-Bar Ringkasan
-        $totalBatch     = $logProduksi->count();
-        $totalGradeA    = $logProduksi->sum('jml_grade_A');
-        $totalGradeB    = $logProduksi->sum('jml_grade_B');
-        $poProsesCount  = $poActive->count();
-
-        return view('production.log_produksi', compact(
-            'logProduksi',
-            'poActive',
-            'rawMaterials',
-            'products',
-            'totalBatch',
-            'totalGradeA',
-            'totalGradeB',
-            'poProsesCount'
-        ));
+        return view('production.log_produksi', compact('logs', 'poActive', 'bahanList', 'products'));
     }
 
     public function store(Request $request)
@@ -54,11 +35,11 @@ class LogProduksiController extends Controller
             'id_produk_grade_B' => 'nullable',
             'bahan_ids'         => 'required|array',
             'bahan_qty'         => 'required|array',
-            'ket'               => 'nullable|string', // Tambahkan validasi ket
+            'ket'               => 'nullable|string',
         ]);
 
         DB::transaction(function () use ($request) {
-            // 1. Simpan Header Log Produksi (Termasuk 'ket')
+            // 1. Simpan Header Log Produksi
             $log = LogProduksi::create([
                 'no_po_produk'    => $request->no_po_produk,
                 'tgl_produksi'    => $request->tgl_produksi,
@@ -66,10 +47,10 @@ class LogProduksiController extends Controller
                 'waktu_produksi'  => $request->waktu_produksi,
                 'jml_grade_A'     => $request->jml_grade_A,
                 'jml_grade_B'     => $request->jml_grade_B,
-                'ket'             => $request->ket, // Pastikan 'ket' disimpan ke DB
+                'ket'             => $request->ket,
             ]);
 
-            // 2. Pemotongan Stok Bahan Baku
+            // 2. Pemotongan Stok Bahan Baku Dapur
             foreach ($request->bahan_ids as $index => $idBahan) {
                 $qtyPakai = $request->bahan_qty[$index] ?? 0;
                 if ($idBahan && $qtyPakai > 0) {
@@ -78,7 +59,7 @@ class LogProduksiController extends Controller
                 }
             }
 
-            // 3. Tambah Stok Grade A
+            // 3. Penambahan Hasil Hasil QC Grade A ke Stok Fisik FG
             if ($request->jml_grade_A > 0) {
                 DetailProduksi::create([
                     'id_produk_jadi'  => $request->id_produk_grade_A,
@@ -90,7 +71,7 @@ class LogProduksiController extends Controller
                     ->increment('stok', $request->jml_grade_A);
             }
 
-            // 4. Tambah Stok Grade B (Remahan)
+            // 4. Penambahan Hasil QC Grade B (Remahan)
             if ($request->jml_grade_B > 0 && $request->id_produk_grade_B) {
                 DetailProduksi::create([
                     'id_produk_jadi'  => $request->id_produk_grade_B,
@@ -102,11 +83,12 @@ class LogProduksiController extends Controller
                     ->increment('stok', $request->jml_grade_B);
             }
 
+            // OTOMATISASI 1: Ubah Status PO Acuan Menjadi "PROSES"
             PoProduk::where('no_po_produk', $request->no_po_produk)
                 ->update(['status_po' => 'PROSES']);
         });
 
         return redirect()->route('log-produksi.index')
-                        ->with('success', 'Batch Log Produksi & QC berhasil disimpan!');
+                         ->with('success', 'Batch Log Produksi disimpan! Status PO otomatis diperbarui ke PROSES.');
     }
 }
