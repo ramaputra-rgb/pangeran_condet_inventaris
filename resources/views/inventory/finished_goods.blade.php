@@ -87,8 +87,20 @@
             <tr class="hover:bg-gray-50/50">
                 <td class="p-4 font-bold text-pc-dark">FG-00{{ $prod->id_produk_jadi }}</td>
                 <td class="p-4">
-                    <p class="font-black text-pc-dark">{{ $prod->nama_produk }}</p>
-                    <p class="text-[10px] text-gray-400">Varian: {{ $prod->varian }}</p>
+                    @php
+                        // Hitung total alokasi PO khusus untuk produk ini
+                        $stokTerkunci = $prod->detailAlokasiPo->sum('jml_alokasi');
+                        $stokBebasJual = max(0, $prod->stok - $stokTerkunci);
+                    @endphp
+                    <p class="font-black text-emerald-600 text-sm">{{ number_format($prod->stok) }} Pcs <span class="text-[10px] text-gray-400 font-normal">(Fisik)</span></p>
+                    <div class="flex items-center gap-2 mt-1 text-[10px]">
+                        <span class="font-extrabold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                            🔒 Terkunci PO: {{ number_format($stokTerkunci) }}
+                        </span>
+                        <span class="font-extrabold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                            ✅ ATP: {{ number_format($stokBebasJual) }}
+                        </span>
+                    </div>
                 </td>
                 <td class="p-4 font-semibold text-gray-500">{{ $prod->netto }}</td>
                 <td class="p-4 font-bold text-pc-dark">

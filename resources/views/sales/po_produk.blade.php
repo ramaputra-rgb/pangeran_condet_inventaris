@@ -100,9 +100,14 @@
                 </td>
                 <td class="p-4">
                     @forelse($po->detailAlokasi as $alokasi)
-                        <p class="font-bold text-pc-dark">• {{ $alokasi->produkJadi->nama_produk ?? 'Produk' }}</p>
+                        <div class="flex items-center gap-1.5 mb-1">
+                            <span class="font-bold text-pc-dark">• {{ $alokasi->produkJadi->nama_produk ?? 'Produk' }}</span>
+                            <span class="px-2 py-0.5 bg-amber-100 text-amber-800 font-extrabold text-[10px] rounded-full border border-amber-200">
+                                Alokasi: {{ number_format($alokasi->jml_alokasi) }} Pcs
+                            </span>
+                        </div>
                     @empty
-                        <p class="text-gray-400 italic">Belum ada alokasi</p>
+                        <p class="text-gray-400 italic text-[10px]">Belum ada alokasi produk</p>
                     @endforelse
                 </td>
                 <td class="p-4 text-center font-black text-pc-maroon text-sm">
