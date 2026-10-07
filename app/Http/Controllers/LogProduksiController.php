@@ -14,8 +14,14 @@ class LogProduksiController extends Controller
 {
     public function index()
     {
-        $logs      = LogProduksi::with(['poProduk', 'bahanProduksi', 'detailProduksi.produkJadi'])->latest()->get();
-        $poActive  = PoProduk::whereIn('status_po', ['PENDING', 'PROSES'])->get();
+        $logs = LogProduksi::with(['poProduk', 'bahanProduksi', 'detailProduksi.produkJadi'])->latest()->get();
+        
+        // Ambil PO aktif beserta relasi alokasi & stok produk di gudang saat ini
+        $poActive = PoProduk::whereIn('status_po', ['PENDING', 'PROSES'])
+                        ->withSum('logProduksi as total_digoreng', 'jml_grade_A')
+                        ->with(['detailAlokasi.produkJadi'])
+                        ->get();
+
         $bahanList = BahanProduksi::all();
         $products  = ProdukJadi::all();
 

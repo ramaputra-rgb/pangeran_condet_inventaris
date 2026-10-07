@@ -64,6 +64,65 @@
     </div>
 </div>
 
+<!-- Kartu Target & Progress Penggorengan Dapur -->
+<div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm mt-6">
+    <div class="flex justify-between items-center mb-3">
+        <div>
+            <h3 class="text-xs font-black text-pc-dark uppercase tracking-wider">🍳 Target Penggorengan PO Aktif Dapur</h3>
+            <p class="text-[10px] text-gray-400">Monitoring progres goreng vs target pesanan pelanggan secara *real-time*.</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs mt-2">
+        @forelse($poActive as $po)
+        @php
+            $target = $po->jumlah_po;
+            $gorengBaru = $po->total_digoreng ?? 0;
+            
+            // Ambil stok fisik gudang riil saat ini
+            $stokGudang = $po->detailAlokasi->first()->produkJadi->stok ?? 0;
+            
+            // Cukup patok ketersediaan dari stok gudang riil saat ini
+            $totalTersedia = $stokGudang; 
+            $persen = min(100, round(($totalTersedia / max(1, $target)) * 100));
+            $isSelesai = $totalTersedia >= $target;
+        @endphp
+
+        <div class="p-3.5 border rounded-2xl bg-gray-50/60 flex flex-col justify-between space-y-2">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="font-black text-pc-dark text-xs block">PO-00{{ $po->no_po_produk }}</span>
+                    <span class="text-[10px] text-gray-500 font-medium">{{ $po->nama_pelanggan }}</span>
+                </div>
+                @if($isSelesai)
+                    <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-black rounded-full border border-emerald-200">
+                        ✅ Ready Siap Antar (Cukup Stok)
+                    </span>
+                @else
+                    <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-[9px] font-black rounded-full border border-amber-200">
+                        🍳 Kurang {{ $target - $totalTersedia }} Pcs
+                    </span>
+                @endif
+            </div>
+
+            <div>
+                <div class="flex justify-between text-[10px] font-bold text-gray-500 mb-1">
+                    <span>Total Goreng Batch: {{ $gorengBaru }} | Total Stok Fisik: {{ $stokGudang }}</span>
+                    <span class="text-pc-dark font-black">{{ $totalTersedia }} / {{ $target }} Pcs</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div class="h-2 rounded-full transition-all duration-500 {{ $isSelesai ? 'bg-emerald-500' : 'bg-pc-orange' }}" style="width: {{ $persen }}%"></div>
+                </div>
+            </div>
+        </div>
+    @empty
+        <div class="col-span-full p-4 text-center bg-gray-50 rounded-xl text-gray-400 text-xs italic">
+            Tidak ada antrean PO aktif.
+        </div>
+    @endforelse
+    </div>
+</div>
+
 <!-- Tabel Riwayat Batch Produksi -->
 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mt-6">
     <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">

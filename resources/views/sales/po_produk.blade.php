@@ -121,15 +121,37 @@
                         Jatuh Tempo: {{ \Carbon\Carbon::parse($po->tgl_jatuh_tempo_po)->format('d M Y') }}
                     </p>
                 </td>
+                <!-- KODE BARU (SUDAH DITAMBAHKAN LOGIC PROGRESS DAPUR) -->
                 <td class="p-4 text-center">
+                    @php
+                        $target = $po->jumlah_po;
+                        $stokGudang = $po->detailAlokasi->first()->produkJadi->stok ?? 0;
+                        $isReady = $stokGudang >= $target;
+                    @endphp
+
                     @if($po->status_po === 'PENDING')
-                        <span class="px-2.5 py-1 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200">PENDING</span>
-                    @elseif($po->status_po === 'PROSES')
-                        <span class="px-2.5 py-1 rounded-full text-[9px] font-extrabold bg-blue-100 text-blue-800 border border-blue-200 animate-pulse">PROSES PRODUKSI</span>
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-gray-100 text-gray-600 border border-gray-200">
+                            ⏳ PENDING
+                        </span>
                     @elseif($po->status_po === 'DIKIRIM')
-                        <span class="px-2.5 py-1 rounded-full text-[9px] font-extrabold bg-purple-100 text-purple-800 border border-purple-200">DALAM PENGIRIMAN</span>
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-purple-100 text-purple-800 border border-purple-200">
+                            🚚 DIKIRIM
+                        </span>
+                    @elseif($po->status_po === 'SELESAI')
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            ✅ SELESAI
+                        </span>
                     @else
-                        <span class="px-2.5 py-1 rounded-full text-[9px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">SELESAI</span>
+                        {{-- Status PROSES PRODUKSI --}}
+                        @if($isReady)
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1 shadow-sm">
+                                📦 SIAP DIBUAT SURAT JALAN
+                            </span>
+                        @else
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
+                                🍳 DIGORENG (Stok: {{ $stokGudang }}/{{ $target }} Pcs)
+                            </span>
+                        @endif
                     @endif
                 </td>
                 <td class="p-4 text-center no-print">
@@ -206,7 +228,7 @@
                 <label class="font-bold text-gray-700 block mb-1">Tautkan Surat Jalan (Opsional)</label>
                 <select name="no_ref" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange bg-white">
                     <option value="">-- Belum Diterbitkan Surat Jalan --</option>
-                    @foreach($suratJalan as $sj)
+                    @foreach($suratJalan ?? [] as $sj)
                         <option value="{{ $sj->no_ref }}">Surat Jalan #{{ $sj->no_ref }} - {{ $sj->nama_penerima }}</option>
                     @endforeach
                 </select>
