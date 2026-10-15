@@ -25,7 +25,7 @@
     </div>
 </div>
 
-<!-- 4 Kartu Ringkasan Top-Bar -->
+<!-- 4 Kartu Ringkasan Top-Bar Konsisten -->
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
     <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm border-l-4 border-l-amber-500">
         <div class="flex justify-between items-start">
@@ -74,16 +74,28 @@
         <thead>
             <tr class="border-b border-gray-100 text-gray-400 font-extrabold text-[10px] uppercase tracking-wider bg-gray-50/30">
                 <th class="p-4">NO. PO</th>
-                <th class="p-4">PELANGGAN & ALAMAT</th>
+                <th class="p-4">PELANGGAN & PENERIMA</th>
                 <th class="p-4">PRODUK YANG DIPESAN</th>
                 <th class="p-4 text-center">JUMLAH PO</th>
                 <th class="p-4">JATUH TEMPO</th>
                 <th class="p-4 text-center">STATUS PO</th>
-                <th class="p-4 text-center no-print">AKSI STATUS</th>
+                <th class="p-4 text-center no-print">AKSI EKSEKUSI</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 font-medium">
             @forelse($poList as $po)
+            @php
+                $target = $po->jumlah_po;
+                $alokasiFirst = $po->detailAlokasi->first();
+                $stokGudang = $alokasiFirst->produkJadi->stok ?? 0;
+                $digoreng = $po->total_digoreng ?? 0;
+                
+                $totalTersedia = $stokGudang + $digoreng;
+                $sisaKurang = max(0, $target - $totalTersedia);
+                
+                $isCukupStok = $totalTersedia >= $target;
+                $isSelesaiProduksi = ($digoreng >= $target) || ($po->status_po === 'PROSES' && $isCukupStok);
+            @endphp
             <tr class="hover:bg-gray-50/50">
                 <td class="p-4 font-bold text-pc-dark">
                     PO-00{{ $po->no_po_produk }}
@@ -93,6 +105,7 @@
                 </td>
                 <td class="p-4">
                     <p class="font-black text-pc-dark">{{ $po->nama_pelanggan }}</p>
+                    <p class="text-[10px] font-bold text-gray-600">👤 Penerima: {{ $po->nama_penerima ?? '-' }}</p>
                     <p class="text-[10px] text-gray-400 truncate max-w-xs">{{ $po->alamat_pelanggan }}</p>
                     <span class="text-[9px] font-extrabold px-2 py-0.5 rounded bg-gray-100 text-gray-600 mt-1 inline-block">
                         {{ $po->tipe_jual }}
@@ -101,9 +114,9 @@
                 <td class="p-4">
                     @forelse($po->detailAlokasi as $alokasi)
                         <div class="flex items-center gap-1.5 mb-1">
-                            <span class="font-bold text-pc-dark">• {{ $alokasi->produkJadi->nama_produk ?? 'Produk' }}</span>
+                            <span class="font-bold text-pc-dark">{{ $alokasi->produkJadi->nama_produk ?? 'Produk' }}</span>
                             <span class="px-2 py-0.5 bg-amber-100 text-amber-800 font-extrabold text-[10px] rounded-full border border-amber-200">
-                                Alokasi: {{ number_format($alokasi->jml_alokasi) }} Pcs
+                                Target: {{ number_format($po->jumlah_po) }} Pcs
                             </span>
                         </div>
                     @empty
@@ -113,22 +126,15 @@
                 <td class="p-4 text-center font-black text-pc-maroon text-sm">
                     {{ number_format($po->jumlah_po) }} Pcs
                 </td>
-                <td class="p-4">
-                    <p class="font-extrabold text-pc-dark text-xs">
+                <td class="p-4 font-bold">
+                    <p class="text-pc-dark text-xs">
                         Tgl PO: {{ \Carbon\Carbon::parse($po->tgl_po ?? $po->created_at)->format('d M Y') }}
                     </p>
                     <p class="text-[10px] text-gray-400 font-medium mt-0.5">
                         Jatuh Tempo: {{ \Carbon\Carbon::parse($po->tgl_jatuh_tempo_po)->format('d M Y') }}
                     </p>
                 </td>
-                <!-- KODE BARU (SUDAH DITAMBAHKAN LOGIC PROGRESS DAPUR) -->
                 <td class="p-4 text-center">
-                    @php
-                        $target = $po->jumlah_po;
-                        $stokGudang = $po->detailAlokasi->first()->produkJadi->stok ?? 0;
-                        $isReady = $stokGudang >= $target;
-                    @endphp
-
                     @if($po->status_po === 'PENDING')
                         <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-gray-100 text-gray-600 border border-gray-200">
                             ⏳ PENDING
@@ -142,23 +148,49 @@
                             ✅ SELESAI
                         </span>
                     @else
-                        {{-- Status PROSES PRODUKSI --}}
-                        @if($isReady)
+                        @if($isCukupStok)
                             <span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1 shadow-sm">
-                                📦 SIAP DIBUAT SURAT JALAN
+                                📦 SIAP KIRIM (Stok Cukup: {{ $totalTersedia }}/{{ $target }} Pcs)
                             </span>
                         @else
                             <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
-                                🍳 DIGORENG (Stok: {{ $stokGudang }}/{{ $target }} Pcs)
+                                🍳 PROSES PRODUKSI (Kurang {{ $sisaKurang }} Pcs | Stok Gudang: {{ $stokGudang }})
                             </span>
                         @endif
                     @endif
                 </td>
                 <td class="p-4 text-center no-print">
-                    <button onclick="openStatusModal('{{ $po->no_po_produk }}', '{{ $po->status_po }}')" 
-                            class="px-3 py-1.5 bg-pc-cream text-pc-maroon border border-pc-orange/20 rounded-lg text-[10px] font-bold hover:bg-amber-100 inline-flex items-center gap-1 cursor-pointer">
-                        <i data-lucide="edit-3" class="w-3 h-3"></i> Ubah Status
-                    </button>
+                    <div class="flex flex-col gap-1.5 items-center">
+                        @if($po->status_po === 'PENDING')
+                            @if($isCukupStok)
+                                <form action="{{ route('po-produk.potong-stok', $po->no_po_produk) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-[10px] font-extrabold hover:bg-emerald-700 cursor-pointer shadow-sm">
+                                        ✂️ Potong Stok Ready
+                                    </button>
+                                </form>
+                            @else
+                                <form action="{{ route('po-produk.buat-batch', $po->no_po_produk) }}" method="POST">
+                                    @csrf
+                                    <input type="hidden" name="qty_produksi" value="{{ $sisaKurang }}">
+                                    <button type="submit" class="px-3 py-1.5 bg-pc-maroon text-white rounded-xl text-[10px] font-extrabold hover:bg-red-800 cursor-pointer shadow-sm">
+                                        🍳 Buat Sisa Produk ({{ $sisaKurang }} Pcs)
+                                    </button>
+                                </form>
+                            @endif
+                        @elseif($po->status_po === 'PROSES' && $isCukupStok && !$po->no_ref)
+                            <!-- Tombol Buka Modal Terbitkan Surat Jalan -->
+                            <button onclick="openModalSj('{{ $po->no_po_produk }}', '{{ $po->nama_penerima ?? $po->nama_pelanggan }}')" 
+                                    class="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-[10px] font-extrabold hover:bg-blue-700 cursor-pointer shadow-sm inline-flex items-center gap-1">
+                                📄 Terbitkan Surat Jalan
+                            </button>
+                        @endif
+
+                        <button onclick="openStatusModal('{{ $po->no_po_produk }}', '{{ $po->status_po }}')" 
+                                class="px-2.5 py-1 bg-pc-cream text-pc-maroon border border-pc-orange/20 rounded-lg text-[10px] font-bold hover:bg-amber-100 inline-flex items-center gap-1 cursor-pointer">
+                            <i data-lucide="edit-3" class="w-3 h-3"></i> Ubah Status
+                        </button>
+                    </div>
                 </td>
             </tr>
             @empty
@@ -168,6 +200,42 @@
             @endforelse
         </tbody>
     </table>
+</div>
+
+<!-- Modal Pop-up Terbitkan Surat Jalan (Simpel & Praktis) -->
+<div id="modal-sj" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+        <div class="flex justify-between items-center border-b border-gray-100 pb-3">
+            <h3 class="font-extrabold text-pc-dark text-sm">Terbitkan Surat Jalan</h3>
+            <button onclick="document.getElementById('modal-sj').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+        </div>
+
+        <form action="{{ route('shipments.surat-jalan.store') }}" method="POST" class="space-y-3 text-xs">
+            @csrf
+            <input type="hidden" name="no_po_produk" id="sj-no-po">
+            <input type="hidden" name="nama_penerima" id="sj-nama-penerima">
+
+            <div>
+                <label class="font-bold text-gray-700 block mb-1">Tanggal Terbit Surat Jalan</label>
+                <input type="date" name="tgl_terbit" value="{{ date('Y-m-d') }}" required class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange font-bold">
+            </div>
+
+            <div>
+                <label class="font-bold text-gray-700 block mb-1">Nama Kurir / Pengirim</label>
+                <input type="text" name="nama_kurir" required placeholder="Misal: Pak Maman (Kurir Condet)" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange">
+            </div>
+
+            <div>
+                <label class="font-bold text-gray-700 block mb-1">Keterangan / Catatan Pengiriman (Opsional)</label>
+                <textarea name="ket" rows="2" placeholder="Misal: Kirim via Mobil Box / Titip Security" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange"></textarea>
+            </div>
+
+            <div class="pt-3 flex justify-end space-x-2">
+                <button type="button" onclick="document.getElementById('modal-sj').classList.add('hidden')" class="px-4 py-2 border border-gray-200 rounded-xl text-gray-600 font-bold hover:bg-gray-50 cursor-pointer">Batal</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-sm cursor-pointer">Simpan & Terbitkan</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- Modal Pop-up Buat PO Pelanggan Baru -->
@@ -185,13 +253,18 @@
                 <input type="text" name="nama_pelanggan" required placeholder="Misal: HERO Super Market / Toko Jaya" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange">
             </div>
 
+            <div>
+                <label class="font-bold text-gray-700 block mb-1">Nama Penerima Barang</label>
+                <input type="text" name="nama_penerima" required placeholder="Misal: Pak Budi (Bagian Gudang)" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange">
+            </div>
+
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="font-bold text-gray-700 block mb-1">Tipe Penjualan</label>
-                    <select name="tipe_jual" required class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange bg-white">
-                        <option value="Grosir">Grosir</option>
+                    <select name="tipe_jual" required class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange bg-white font-bold">
+                        <option value="Konsinyasi">Konsinyasi (Konsumsi)</option>
+                        <option value="Jual Putus">Jual Putus</option>
                         <option value="Eceran">Eceran</option>
-                        <option value="Toko Oleh-Oleh">Toko Oleh-Oleh</option>
                     </select>
                 </div>
                 <div>
@@ -204,34 +277,24 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-3 gap-2">
                 <div>
-                    <label class="font-bold text-gray-700 block mb-1">Jumlah Pesanan (Pcs)</label>
-                    <input type="number" name="jumlah_po" required placeholder="100" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange">
+                    <label class="font-bold text-gray-700 block mb-1">Jumlah (Pcs)</label>
+                    <input type="number" name="jumlah_po" required placeholder="100" class="w-full border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:border-pc-orange">
                 </div>
                 <div>
-                    <label class="font-bold text-gray-700 block mb-1">Tanggal PO Terbit</label>
-                    <input type="date" name="tgl_po" value="{{ date('Y-m-d') }}" required class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange">
+                    <label class="font-bold text-gray-700 block mb-1">Tanggal PO</label>
+                    <input type="date" name="tgl_po" value="{{ date('Y-m-d') }}" required class="w-full border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:border-pc-orange">
                 </div>
                 <div>
-                    <label class="font-bold text-gray-700 block mb-1">Tgl Jatuh Tempo PO</label>
-                    <input type="date" name="tgl_jatuh_tempo_po" value="{{ date('Y-m-d', strtotime('+7 days')) }}" required class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange">
+                    <label class="font-bold text-gray-700 block mb-1">Jatuh Tempo</label>
+                    <input type="date" name="tgl_jatuh_tempo_po" value="{{ date('Y-m-d', strtotime('+7 days')) }}" required class="w-full border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:border-pc-orange">
                 </div>
             </div>
 
             <div>
                 <label class="font-bold text-gray-700 block mb-1">Alamat Pengiriman</label>
                 <textarea name="alamat_pelanggan" required rows="2" placeholder="Jl. Raya Condet No. XX, Jakarta" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange"></textarea>
-            </div>
-
-            <div>
-                <label class="font-bold text-gray-700 block mb-1">Tautkan Surat Jalan (Opsional)</label>
-                <select name="no_ref" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange bg-white">
-                    <option value="">-- Belum Diterbitkan Surat Jalan --</option>
-                    @foreach($suratJalan ?? [] as $sj)
-                        <option value="{{ $sj->no_ref }}">Surat Jalan #{{ $sj->no_ref }} - {{ $sj->nama_penerima }}</option>
-                    @endforeach
-                </select>
             </div>
 
             <div class="pt-3 flex justify-end space-x-2">
@@ -271,6 +334,12 @@
 </div>
 
 <script>
+function openModalSj(noPo, namaPenerima) {
+    document.getElementById('sj-no-po').value = noPo;
+    document.getElementById('sj-nama-penerima').value = namaPenerima;
+    document.getElementById('modal-sj').classList.remove('hidden');
+}
+
 function openStatusModal(id, currentStatus) {
     document.getElementById('select-status-po').value = currentStatus;
     document.getElementById('form-status').action = '/po-produk/update-status/' + id;

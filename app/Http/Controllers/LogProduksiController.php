@@ -19,7 +19,7 @@ class LogProduksiController extends Controller
         // Ambil PO aktif beserta relasi alokasi & stok produk di gudang saat ini
         $poActive = PoProduk::whereIn('status_po', ['PENDING', 'PROSES'])
                         ->withSum('logProduksi as total_digoreng', 'jml_grade_A')
-                        ->with(['detailAlokasi.produkJadi'])
+                        ->with(['detailAlokasi.produkJadi', 'logProduksi'])
                         ->get();
 
         $bahanList = BahanProduksi::all();
@@ -45,7 +45,7 @@ class LogProduksiController extends Controller
         ]);
 
         DB::transaction(function () use ($request) {
-            // 1. Simpan Header Log Produksi
+            // 1. Simpan Header Log Produksi (Otomatis APPROVED jika diinput manual oleh Admin)
             $log = LogProduksi::create([
                 'no_po_produk'    => $request->no_po_produk,
                 'tgl_produksi'    => $request->tgl_produksi,
@@ -53,6 +53,7 @@ class LogProduksiController extends Controller
                 'waktu_produksi'  => $request->waktu_produksi,
                 'jml_grade_A'     => $request->jml_grade_A,
                 'jml_grade_B'     => $request->jml_grade_B,
+                'status_approval' => 'APPROVED',
                 'ket'             => $request->ket,
             ]);
 
@@ -65,7 +66,7 @@ class LogProduksiController extends Controller
                 }
             }
 
-            // 3. Penambahan Hasil Hasil QC Grade A ke Stok Fisik FG
+            // 3. Penambahan Hasil QC Grade A ke Stok Fisik FG
             if ($request->jml_grade_A > 0) {
                 DetailProduksi::create([
                     'id_produk_jadi'  => $request->id_produk_grade_A,
@@ -96,5 +97,14 @@ class LogProduksiController extends Controller
 
         return redirect()->route('log-produksi.index')
                          ->with('success', 'Batch Log Produksi disimpan! Status PO otomatis diperbarui ke PROSES.');
+    }
+
+    // FUNGSI BARU: Approval Admin untuk Batch dari PO Pelanggan
+    public function approveBatch($id)
+    {
+        $log = LogProduksi::findOrFail($id);
+        $log->update(['status_approval' => 'APPROVED']);
+
+        return redirect()->back()->with('success', 'Batch produksi berhasil disetujui Admin!');
     }
 }

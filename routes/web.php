@@ -12,7 +12,7 @@ use App\Http\Controllers\LogProduksiController;
 use App\Http\Controllers\PoProdukController;
 use App\Http\Controllers\ShipmentController;
 
-// Modulmanajemen stok produksi
+// Modul manajemen stok produksi
 Route::get('/raw-materials', [RawMaterialsController::class, 'index'])->name('raw-materials.index');
 Route::post('/raw-materials/material/store', [RawMaterialsController::class, 'storeMaterial'])->name('raw-materials.material.store');
 Route::put('/raw-materials/material/{id}', [RawMaterialsController::class, 'updateMaterial'])->name('raw-materials.material.update');
@@ -33,11 +33,14 @@ Route::post('/shipments/update-status/{id}', [ShipmentController::class, 'update
 // Modul PO Produk
 Route::get('/po-produk', [PoProdukController::class, 'index'])->name('po-produk.index');
 Route::post('/po-produk/store', [PoProdukController::class, 'store'])->name('po-produk.store');
+Route::post('/po-produk/potong-stok/{id}', [PoProdukController::class, 'potongStokReady'])->name('po-produk.potong-stok');
+Route::post('/po-produk/buat-batch/{id}', [PoProdukController::class, 'buatProdukBatch'])->name('po-produk.buat-batch');
 Route::post('/po-produk/update-status/{id}', [PoProdukController::class, 'updateStatus'])->name('po-produk.update-status');
 
 // Modul Log Produksi
 Route::get('/log-produksi', [LogProduksiController::class, 'index'])->name('log-produksi.index');
 Route::post('/log-produksi/store', [LogProduksiController::class, 'store'])->name('log-produksi.store');
+Route::post('/log-produksi/approve/{id}', [LogProduksiController::class, 'approveBatch'])->name('log-produksi.approve');
 
 // Modul Work Orders
 Route::get('/work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index');

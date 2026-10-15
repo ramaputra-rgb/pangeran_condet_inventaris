@@ -14,6 +14,7 @@ class PoProduk extends Model
 
     protected $fillable = [
         'nama_pelanggan',
+        'nama_penerima',
         'tipe_jual',
         'jumlah_po',
         'tgl_po',

@@ -11,9 +11,10 @@ return new class extends Migration
         Schema::create('po_produk', function (Blueprint $table) {
             $table->id('no_po_produk');
             $table->string('nama_pelanggan');
-            $table->string('tipe_jual'); // Grosir/Eceran/Toko
+            $table->string('nama_penerima'); // Tambahan kolom nama penerima
+            $table->string('tipe_jual'); // Konsinyasi, Jual Putus, Eceran
             $table->integer('jumlah_po');
-            $table->date('tgl_po')->default(now()); // Ditambahkan untuk tanggal terbit PO
+            $table->date('tgl_po')->default(now());
             $table->date('tgl_jatuh_tempo_po');
             $table->string('status_po')->default('PENDING'); // PENDING, PROSES, DIKIRIM, SELESAI
             $table->text('alamat_pelanggan');

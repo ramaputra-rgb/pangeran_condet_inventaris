@@ -35,19 +35,22 @@ class ShipmentController extends Controller
     public function storeSuratJalan(Request $request)
     {
         $request->validate([
-            'tgl_terbit'    => 'required|date',
+            'tgl_terbit'    => 'nullable|date',
             'nama_penerima' => 'required|string|max:255',
-            'nama_kurir'    => 'required|string|max:255',
+            'nama_kurir'    => 'nullable|string|max:255',
             'ket'           => 'nullable|string',
             'no_po_produk'  => 'nullable',
         ]);
 
         DB::transaction(function () use ($request) {
+            $tglTerbit = $request->tgl_terbit ?? now()->format('Y-m-d');
+            $kurir     = $request->nama_kurir ?? 'Kurir Internal Condet';
+
             $sj = SuratJalan::create([
-                'tgl_terbit'    => $request->tgl_terbit,
+                'tgl_terbit'    => $tglTerbit,
                 'nama_penerima' => $request->nama_penerima,
-                'nama_kurir'    => $request->nama_kurir,
-                'ket'           => $request->ket,
+                'nama_kurir'    => $kurir,
+                'ket'           => $request->ket ?? 'Diterbitkan otomatis dari PO Pelanggan',
             ]);
 
             if ($request->no_po_produk) {
@@ -59,15 +62,15 @@ class ShipmentController extends Controller
                     ]);
 
                 LogPengiriman::create([
-                    'Tanggal'           => $request->tgl_terbit,
+                    'Tanggal'           => $tglTerbit,
                     'no_po_produk'      => $request->no_po_produk,
                     'status_pengiriman' => 'DIPROSES',
                 ]);
             }
         });
 
-        return redirect()->route('shipments.index')
-                         ->with('success', 'Surat Jalan diterbitkan! Status PO otomatis berubah ke DIKIRIM.');
+        return redirect()->back()
+                         ->with('success', 'Surat Jalan berhasil diterbitkan! Status PO otomatis berubah ke DIKIRIM.');
     }
 
     public function updateShipmentStatus(Request $request, $id)

@@ -10,13 +10,14 @@ return new class extends Migration
     {
         Schema::create('log_produksi', function (Blueprint $table) {
             $table->id('no_batch');
-            $table->date('tgl_produksi');
-            $table->date('rentang_tgl_exp');
-            $table->time('waktu_produksi');
+            $table->foreignId('no_po_produk')->constrained('po_produk', 'no_po_produk')->onDelete('cascade');
+            $table->date('tgl_produksi')->nullable();
+            $table->date('rentang_tgl_exp')->nullable();
+            $table->string('waktu_produksi')->nullable();
             $table->integer('jml_grade_A')->default(0);
             $table->integer('jml_grade_B')->default(0);
-            $table->foreignId('no_po_produk')->constrained('po_produk', 'no_po_produk')->onDelete('cascade');
-            $table->text('ket')->nullable(); // Ditambahkan untuk catatan kendala dapur
+            $table->string('status_approval')->default('PENDING'); // PENDING / APPROVED
+            $table->text('ket')->nullable();
             $table->timestamps();
         });
     }

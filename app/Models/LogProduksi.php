@@ -19,6 +19,7 @@ class LogProduksi extends Model
         'jml_grade_A',
         'jml_grade_B',
         'no_po_produk',
+        'status_approval', // TAMBAHAN: PENDING / APPROVED
         'ket',
     ];
 
