@@ -70,31 +70,31 @@
                         <a href="{{ route('raw-materials.index') }}" 
                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl transition {{ request()->routeIs('raw-materials.index') ? 'bg-pc-cream text-pc-maroon font-bold border border-pc-orange/20' : 'text-gray-600 hover:bg-gray-50' }}">
                             <i data-lucide="shopping-bag" class="w-4 h-4"></i>
-                            <span>Pengadaan & Stok Bahan Produksi</span>
-                        </a>
-
-                        <a href="{{ route('log-produksi.index') }}" 
-                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-gray-600 hover:bg-gray-50 transition">
-                            <i data-lucide="history" class="w-4 h-4"></i>
-                            <span>Log Produksi & Quality Control</span>
+                            <span>Manajemen Stok Bahan Produksi</span>
                         </a>
 
                         <a href="{{ route('finished-goods.index') }}" 
                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl transition {{ request()->routeIs('finished-goods.index') ? 'bg-pc-cream text-pc-maroon font-bold border border-pc-orange/20' : 'text-gray-600 hover:bg-gray-50' }}">
                             <i data-lucide="package-check" class="w-4 h-4"></i>
-                            <span>Stok Produk Jadi (FG)</span>
+                            <span>Master Produk Jadi</span>
                         </a>
 
                         <a href="{{ route('po-produk.index') }}" 
-                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-gray-600 hover:bg-gray-50 transition">
+                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl transition {{ request()->routeIs('po-produk.index') ? 'bg-pc-cream text-pc-maroon font-bold border border-pc-orange/20' : 'text-gray-600 hover:bg-gray-50' }}">
                             <i data-lucide="shopping-cart" class="w-4 h-4"></i>
-                            <span>Pesanan PO Pelanggan</span>
+                            <span>Po Produk</span>
+                        </a>
+
+                        <a href="{{ route('log-produksi.index') }}" 
+                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl transition {{ request()->routeIs('log-produksi.index') ? 'bg-pc-cream text-pc-maroon font-bold border border-pc-orange/20' : 'text-gray-600 hover:bg-gray-50' }}">
+                            <i data-lucide="history" class="w-4 h-4"></i>
+                            <span>Log Produksi</span>
                         </a>
 
                         <a href="{{ route('shipments.index') }}" 
-                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl text-gray-600 hover:bg-gray-50 transition">
+                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl transition {{ request()->routeIs('shipments.index') ? 'bg-pc-cream text-pc-maroon font-bold border border-pc-orange/20' : 'text-gray-600 hover:bg-gray-50' }}">
                             <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                            <span>Pengiriman & Surat Jalan</span>
+                            <span>Log Pengiriman</span>
                         </a>
                     </div>
                 </nav>
