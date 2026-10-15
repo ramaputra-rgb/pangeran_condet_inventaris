@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FinishedGoodsController;
-use App\Http\Controllers\RawMaterialController;
+use App\Http\Controllers\RawMaterialsController;
 use App\Http\Controllers\ProductionBatchController;
 use App\Http\Controllers\MaterialPurchaseController;
 use App\Http\Controllers\BomController;
@@ -11,6 +11,15 @@ use App\Http\Controllers\WorkOrderController;
 use App\Http\Controllers\LogProduksiController;
 use App\Http\Controllers\PoProdukController;
 use App\Http\Controllers\ShipmentController;
+
+// Modulmanajemen stok produksi
+Route::get('/raw-materials', [RawMaterialsController::class, 'index'])->name('raw-materials.index');
+Route::post('/raw-materials/material/store', [RawMaterialsController::class, 'storeMaterial'])->name('raw-materials.material.store');
+Route::put('/raw-materials/material/{id}', [RawMaterialsController::class, 'updateMaterial'])->name('raw-materials.material.update');
+Route::delete('/raw-materials/material/{id}', [RawMaterialsController::class, 'destroyMaterial'])->name('raw-materials.material.destroy');
+
+Route::post('/raw-materials/purchase/store', [RawMaterialsController::class, 'storePurchase'])->name('raw-materials.purchase.store');
+Route::post('/raw-materials/purchase/destroy-group', [RawMaterialsController::class, 'destroyPurchaseGroup'])->name('raw-materials.purchase.destroy-group');
 
 // Modul Dashboard
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -46,11 +55,3 @@ Route::post('/finished-goods/update-stock/{id}', [FinishedGoodsController::class
 // SPK & Serah Terima Hasil Produksi Dapur
 Route::post('/production-batch', [ProductionBatchController::class, 'store'])->name('production-batch.store');
 Route::patch('/production-batch/{id}/accept', [FinishedGoodsController::class, 'acceptBatch'])->name('production-batch.accept');
-
-// Modul Bahan Baku & Pengadaan (Raw Materials)
-Route::get('/raw-materials', [RawMaterialController::class, 'index'])->name('raw-materials.index');
-# Route::post('/raw-materials/purchase', [MaterialPurchaseController::class, 'store'])->name('raw-materials.purchase.store');
-Route::post('/raw-materials/purchase', [RawMaterialController::class, 'storePurchase'])->name('raw-materials.purchase.store');
-Route::post('/raw-materials/supplier', [RawMaterialController::class, 'storeSupplier'])->name('raw-materials.supplier.store');
-Route::post('/raw-materials/material', [RawMaterialController::class, 'storeMaterial'])->name('raw-materials.material.store');
-Route::get('/raw-materials/export-csv', [RawMaterialController::class, 'exportCsv'])->name('raw-materials.export-csv');
