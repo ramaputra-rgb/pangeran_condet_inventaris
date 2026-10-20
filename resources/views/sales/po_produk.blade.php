@@ -75,26 +75,27 @@
             <tr class="border-b border-gray-100 text-gray-400 font-extrabold text-[10px] uppercase tracking-wider bg-gray-50/30">
                 <th class="p-4">NO. PO</th>
                 <th class="p-4">PELANGGAN & PENERIMA</th>
-                <th class="p-4">PRODUK YANG DIPESAN</th>
-                <th class="p-4 text-center">JUMLAH PO</th>
+                <th class="p-4">DETAIL PESANAN & PROGRES DAPUR (REAL-TIME)</th>
+                <th class="p-4 text-center">TOTAL TARGET</th>
                 <th class="p-4">JATUH TEMPO</th>
-                <th class="p-4 text-center">STATUS PO</th>
+                <th class="p-4 text-center">STATUS KESELURUHAN</th>
                 <th class="p-4 text-center no-print">AKSI EKSEKUSI</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 font-medium">
             @forelse($poList as $po)
             @php
-                $target = $po->jumlah_po;
-                $alokasiFirst = $po->detailAlokasi->first();
-                $stokGudang = $alokasiFirst->produkJadi->stok ?? 0;
-                $digoreng = $po->total_digoreng ?? 0;
+                $isSemuaItemSelesai = true;
+                $totalGorengKeseluruhan = 0;
                 
-                $totalTersedia = $stokGudang + $digoreng;
-                $sisaKurang = max(0, $target - $totalTersedia);
-                
-                $isCukupStok = $totalTersedia >= $target;
-                $isSelesaiProduksi = ($digoreng >= $target) || ($po->status_po === 'PROSES' && $isCukupStok);
+                // Mengumpulkan total gorengan dapur per id_produk_jadi khusus untuk PO ini
+                $hasilGorengPerProduk = [];
+                foreach($po->logProduksi as $log) {
+                    foreach($log->detailProduksi as $det) {
+                        $idProd = $det->id_produk_jadi;
+                        $hasilGorengPerProduk[$idProd] = ($hasilGorengPerProduk[$idProd] ?? 0) + $det->jml_produk_jadi;
+                    }
+                }
             @endphp
             <tr class="hover:bg-gray-50/50">
                 <td class="p-4 font-bold text-pc-dark">
@@ -111,18 +112,68 @@
                         {{ $po->tipe_jual }}
                     </span>
                 </td>
+
+                <!-- KOLOM DETAIL BREAKDOWN PER-ITEM PRODUK & PROGRES REAL-TIME -->
                 <td class="p-4">
-                    @forelse($po->detailAlokasi as $alokasi)
-                        <div class="flex items-center gap-1.5 mb-1">
-                            <span class="font-bold text-pc-dark">{{ $alokasi->produkJadi->nama_produk ?? 'Produk' }}</span>
-                            <span class="px-2 py-0.5 bg-amber-100 text-amber-800 font-extrabold text-[10px] rounded-full border border-amber-200">
-                                Target: {{ number_format($po->jumlah_po) }} Pcs
-                            </span>
+                    <div class="space-y-2 max-w-md">
+                        @forelse($po->detailAlokasi as $alokasi)
+                        @php
+                            $idProd = $alokasi->id_produk_jadi;
+                            $targetQty = $alokasi->jml_alokasi;
+                            $sudahGoreng = $hasilGorengPerProduk[$idProd] ?? 0;
+                            $stokGudangFisik = $alokasi->produkJadi->stok ?? 0;
+                            
+                            $isStatusSudahLanjut = in_array($po->status_po, ['STOK_DIPOTONG', 'DIKIRIM', 'SELESAI']);
+                            
+                            if ($isStatusSudahLanjut) {
+                                $totalSiap = $targetQty;
+                                $isItemCukup = true;
+                            } else {
+                                $totalSiap = min($targetQty, $stokGudangFisik + $sudahGoreng);
+                                $isItemCukup = ($totalSiap >= $targetQty);
+                            }
+
+                            if (!$isItemCukup) {
+                                $isSemuaItemSelesai = false;
+                            }
+
+                            $persenItem = $targetQty > 0 ? min(100, round(($totalSiap / $targetQty) * 100)) : 0;
+                        @endphp
+
+                        <div class="p-2.5 bg-gray-50 rounded-xl border border-gray-100 space-y-1">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-black text-pc-dark">{{ $alokasi->produkJadi->nama_produk ?? 'Produk' }}</span>
+                                @if($isItemCukup)
+                                    <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-extrabold text-[9px] rounded-md border border-emerald-200">
+                                        ✅ SIAP ({{ number_format($totalSiap) }}/{{ number_format($targetQty) }} Pcs)
+                                    </span>
+                                @else
+                                    <span class="px-2 py-0.5 bg-amber-100 text-amber-800 font-extrabold text-[9px] rounded-md border border-amber-200">
+                                        🔥 PROSES ({{ number_format($totalSiap) }}/{{ number_format($targetQty) }} Pcs)
+                                    </span>
+                                @endif
+                            </div>
+
+                            <div class="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                                <div class="h-1.5 {{ $isItemCukup ? 'bg-emerald-500' : 'bg-pc-orange' }} transition-all duration-300" 
+                                    style="width: {{ $persenItem }}%"></div>
+                            </div>
+                            
+                            <div class="flex justify-between items-center text-[9px] text-gray-400">
+                                <span>Target PO: {{ number_format($targetQty) }} Pcs</span>
+                                @if(!$isItemCukup)
+                                    <span class="text-amber-600 font-bold">Kurang: {{ number_format($targetQty - $totalSiap) }} Pcs lagi</span>
+                                @else
+                                    <span class="text-emerald-600 font-bold">✓ Kuota Produk Terpenuhi</span>
+                                @endif
+                            </div>
                         </div>
                     @empty
-                        <p class="text-gray-400 italic text-[10px]">Belum ada alokasi produk</p>
+                        <p class="text-gray-400 italic text-[10px]">Belum ada detail alokasi produk</p>
                     @endforelse
+                    </div>
                 </td>
+
                 <td class="p-4 text-center font-black text-pc-maroon text-sm">
                     {{ number_format($po->jumlah_po) }} Pcs
                 </td>
@@ -134,56 +185,63 @@
                         Jatuh Tempo: {{ \Carbon\Carbon::parse($po->tgl_jatuh_tempo_po)->format('d M Y') }}
                     </p>
                 </td>
+
+                <!-- STATUS KESELURUHANS PO -->
                 <td class="p-4 text-center">
-                    @if($po->status_po === 'PENDING')
-                        <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-gray-100 text-gray-600 border border-gray-200">
-                            ⏳ PENDING
+                    @if($po->status_po === 'SELESAI')
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            ✅ SELESAI
                         </span>
                     @elseif($po->status_po === 'DIKIRIM')
                         <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-purple-100 text-purple-800 border border-purple-200">
                             🚚 DIKIRIM
                         </span>
-                    @elseif($po->status_po === 'SELESAI')
-                        <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                            ✅ SELESAI
+                    @elseif($po->status_po === 'STOK_DIPOTONG')
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-blue-100 text-blue-800 border border-blue-300">
+                            📦 STOK DIPOTONG
                         </span>
                     @else
-                        @if($isCukupStok)
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1 shadow-sm">
-                                📦 SIAP KIRIM (Stok Cukup: {{ $totalTersedia }}/{{ $target }} Pcs)
+                        @if($isSemuaItemSelesai)
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                ✓ SEMUA ITEM SIAP
                             </span>
                         @else
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
-                                🍳 PROSES PRODUKSI (Kurang {{ $sisaKurang }} Pcs | Stok Gudang: {{ $stokGudang }})
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200">
+                                🍳 PROSES DAPUR
                             </span>
                         @endif
                     @endif
                 </td>
+
+                <!-- AKSI EKSEKUSI -->
                 <td class="p-4 text-center no-print">
                     <div class="flex flex-col gap-1.5 items-center">
-                        @if($po->status_po === 'PENDING')
-                            @if($isCukupStok)
+                        @if($po->status_po !== 'SELESAI' && $po->status_po !== 'DIKIRIM')
+                            
+                            @if($isSemuaItemSelesai && $po->status_po !== 'STOK_DIPOTONG')
                                 <form action="{{ route('po-produk.potong-stok', $po->no_po_produk) }}" method="POST">
                                     @csrf
-                                    <button type="submit" class="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-[10px] font-extrabold hover:bg-emerald-700 cursor-pointer shadow-sm">
+                                    <button type="submit" class="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-[10px] font-extrabold hover:bg-emerald-700 cursor-pointer shadow-sm animate-pulse">
                                         ✂️ Potong Stok Ready
                                     </button>
                                 </form>
+
+                            @elseif($po->status_po === 'STOK_DIPOTONG' && !$po->suratJalan)
+                                <button onclick="openModalSj('{{ $po->no_po_produk }}', '{{ $po->nama_penerima ?? $po->nama_pelanggan }}')" 
+                                        class="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-[10px] font-extrabold hover:bg-blue-700 cursor-pointer shadow-sm inline-flex items-center gap-1">
+                                    📄 Terbitkan Surat Jalan
+                                </button>
+
+                            @elseif($po->suratJalan)
+                                <span class="text-[10px] text-emerald-600 font-bold">✓ SJ Sudah Terbit</span>
+
                             @else
-                                <form action="{{ route('po-produk.buat-batch', $po->no_po_produk) }}" method="POST">
-                                    @csrf
-                                    <input type="hidden" name="qty_produksi" value="{{ $sisaKurang }}">
-                                    <button type="submit" class="px-3 py-1.5 bg-pc-maroon text-white rounded-xl text-[10px] font-extrabold hover:bg-red-800 cursor-pointer shadow-sm">
-                                        🍳 Buat Sisa Produk ({{ $sisaKurang }} Pcs)
-                                    </button>
-                                </form>
+                                <a href="{{ route('po-produk.buat-batch', $po->no_po_produk) }}" 
+                                class="px-3 py-1.5 bg-pc-maroon text-white rounded-xl text-[10px] font-extrabold hover:bg-red-800 cursor-pointer shadow-sm inline-block">
+                                    🍳 Buat Batch Produksi Baru
+                                </a>
                             @endif
-                        @elseif($po->status_po === 'PROSES' && $isCukupStok && !$po->no_ref)
-                            <!-- Tombol Buka Modal Terbitkan Surat Jalan -->
-                            <button onclick="openModalSj('{{ $po->no_po_produk }}', '{{ $po->nama_penerima ?? $po->nama_pelanggan }}')" 
-                                    class="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-[10px] font-extrabold hover:bg-blue-700 cursor-pointer shadow-sm inline-flex items-center gap-1">
-                                📄 Terbitkan Surat Jalan
-                            </button>
+
                         @endif
 
                         <button onclick="openStatusModal('{{ $po->no_po_produk }}', '{{ $po->status_po }}')" 
@@ -202,7 +260,7 @@
     </table>
 </div>
 
-<!-- Modal Pop-up Terbitkan Surat Jalan (Simpel & Praktis) -->
+<!-- Modal Pop-up Terbitkan Surat Jalan -->
 <div id="modal-sj" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
         <div class="flex justify-between items-center border-b border-gray-100 pb-3">
@@ -240,47 +298,33 @@
 
 <!-- Modal Pop-up Buat PO Pelanggan Baru -->
 <div id="modal-po" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center border-b border-gray-100 pb-3">
-            <h3 class="font-extrabold text-pc-dark text-sm">Input Pesanan PO Pelanggan Baru</h3>
+            <h3 class="font-extrabold text-pc-dark text-sm">Input Pesanan PO Pelanggan Baru (Multi-Item)</h3>
             <button onclick="document.getElementById('modal-po').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 font-bold">✕</button>
         </div>
 
         <form action="{{ route('po-produk.store') }}" method="POST" class="space-y-3 text-xs">
             @csrf
-            <div>
-                <label class="font-bold text-gray-700 block mb-1">Nama Pelanggan / Toko / Supermarket</label>
-                <input type="text" name="nama_pelanggan" required placeholder="Misal: HERO Super Market / Toko Jaya" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange">
-            </div>
-
-            <div>
-                <label class="font-bold text-gray-700 block mb-1">Nama Penerima Barang</label>
-                <input type="text" name="nama_penerima" required placeholder="Misal: Pak Budi (Bagian Gudang)" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange">
-            </div>
-
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="font-bold text-gray-700 block mb-1">Tipe Penjualan</label>
-                    <select name="tipe_jual" required class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange bg-white font-bold">
-                        <option value="Konsinyasi">Konsinyasi (Konsumsi)</option>
-                        <option value="Jual Putus">Jual Putus</option>
-                        <option value="Eceran">Eceran</option>
-                    </select>
+                    <label class="font-bold text-gray-700 block mb-1">Nama Pelanggan / Toko</label>
+                    <input type="text" name="nama_pelanggan" required placeholder="Misal: HERO Super Market" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange">
                 </div>
                 <div>
-                    <label class="font-bold text-gray-700 block mb-1">Pilih Produk Dipesan</label>
-                    <select name="id_produk_jadi" required class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange bg-white">
-                        @foreach($products as $prod)
-                            <option value="{{ $prod->id_produk_jadi }}">{{ $prod->nama_produk }} (Stok: {{ $prod->stok }})</option>
-                        @endforeach
-                    </select>
+                    <label class="font-bold text-gray-700 block mb-1">Nama Penerima Barang</label>
+                    <input type="text" name="nama_penerima" required placeholder="Misal: Pak Budi (Gudang)" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange">
                 </div>
             </div>
 
             <div class="grid grid-cols-3 gap-2">
                 <div>
-                    <label class="font-bold text-gray-700 block mb-1">Jumlah (Pcs)</label>
-                    <input type="number" name="jumlah_po" required placeholder="100" class="w-full border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:border-pc-orange">
+                    <label class="font-bold text-gray-700 block mb-1">Tipe Penjualan</label>
+                    <select name="tipe_jual" required class="w-full border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:border-pc-orange bg-white font-bold">
+                        <option value="Konsinyasi">Konsinyasi</option>
+                        <option value="Jual Putus">Jual Putus</option>
+                        <option value="Eceran">Eceran</option>
+                    </select>
                 </div>
                 <div>
                     <label class="font-bold text-gray-700 block mb-1">Tanggal PO</label>
@@ -292,14 +336,33 @@
                 </div>
             </div>
 
+            <div class="border border-gray-100 rounded-2xl p-3 bg-gray-50/50 space-y-2">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="font-black text-pc-dark text-xs">Daftar Produk Dipesan:</span>
+                    <button type="button" onclick="addProdukRow()" class="px-2.5 py-1 bg-pc-maroon text-white text-[10px] font-bold rounded-lg cursor-pointer hover:bg-red-800 transition">+ Tambah Produk</button>
+                </div>
+
+                <div id="produk-row-container" class="space-y-2">
+                    <div class="flex items-center gap-2 produk-item">
+                        <select name="produk_ids[]" required class="w-2/3 border border-gray-200 rounded-xl px-2 py-1.5 bg-white font-bold text-gray-700">
+                            @foreach($products as $prod)
+                                <option value="{{ $prod->id_produk_jadi }}">{{ $prod->nama_produk }} (Stok: {{ $prod->stok }})</option>
+                            @endforeach
+                        </select>
+                        <input type="number" name="produk_qty[]" required min="1" placeholder="Qty (Pcs)" class="w-1/3 border border-gray-200 rounded-xl px-2 py-1.5">
+                        <button type="button" onclick="removeProdukRow(this)" class="text-red-500 font-bold px-1 hover:text-red-700">✕</button>
+                    </div>
+                </div>
+            </div>
+
             <div>
-                <label class="font-bold text-gray-700 block mb-1">Alamat Pengiriman</label>
+                <label class="font-bold text-gray-700 block mb-1">Alamat Pengiriman Lengkap</label>
                 <textarea name="alamat_pelanggan" required rows="2" placeholder="Jl. Raya Condet No. XX, Jakarta" class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange"></textarea>
             </div>
 
             <div class="pt-3 flex justify-end space-x-2">
                 <button type="button" onclick="document.getElementById('modal-po').classList.add('hidden')" class="px-4 py-2 border border-gray-200 rounded-xl text-gray-600 font-bold hover:bg-gray-50 cursor-pointer">Batal</button>
-                <button type="submit" class="px-4 py-2 bg-pc-maroon text-white rounded-xl font-bold hover:bg-red-800 transition shadow-sm cursor-pointer">Simpan PO Pelanggan</button>
+                <button type="submit" class="px-4 py-2 bg-pc-maroon text-white rounded-xl font-bold hover:bg-red-800 transition shadow-sm cursor-pointer">Simpan Pesanan PO</button>
             </div>
         </form>
     </div>
@@ -320,6 +383,7 @@
                 <select name="status_po" id="select-status-po" required class="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-pc-orange bg-white font-bold text-pc-dark">
                     <option value="PENDING">PENDING (Menunggu)</option>
                     <option value="PROSES">PROSES (Dalam Penggorengan Dapur)</option>
+                    <option value="STOK_DIPOTONG">STOK DIPOTONG (Siap Terbit SJ)</option>
                     <option value="DIKIRIM">DIKIRIM (Dalam Perjalanan)</option>
                     <option value="SELESAI">SELESAI (Diterima Pelanggan)</option>
                 </select>
@@ -334,6 +398,21 @@
 </div>
 
 <script>
+function addProdukRow() {
+    const container = document.getElementById('produk-row-container');
+    const firstRow = container.children[0];
+    const newRow = firstRow.cloneNode(true);
+    newRow.querySelector('input[name="produk_qty[]"]').value = '';
+    container.appendChild(newRow);
+}
+
+function removeProdukRow(btn) {
+    const container = document.getElementById('produk-row-container');
+    if (container.children.length > 1) {
+        btn.parentElement.remove();
+    }
+}
+
 function openModalSj(noPo, namaPenerima) {
     document.getElementById('sj-no-po').value = noPo;
     document.getElementById('sj-nama-penerima').value = namaPenerima;

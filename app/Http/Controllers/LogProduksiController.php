@@ -5,106 +5,96 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\LogProduksi;
 use App\Models\DetailProduksi;
-use App\Models\BahanProduksi;
-use App\Models\ProdukJadi;
 use App\Models\PoProduk;
+use App\Models\ProdukJadi;
 use Illuminate\Support\Facades\DB;
 
 class LogProduksiController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $logs = LogProduksi::with(['poProduk', 'bahanProduksi', 'detailProduksi.produkJadi'])->latest()->get();
-        
-        // Ambil PO aktif beserta relasi alokasi & stok produk di gudang saat ini
-        $poActive = PoProduk::whereIn('status_po', ['PENDING', 'PROSES'])
-                        ->withSum('logProduksi as total_digoreng', 'jml_grade_A')
-                        ->with(['detailAlokasi.produkJadi', 'logProduksi'])
+        $selectedPoNo = $request->get('no_po');
+
+        $logProduksi = LogProduksi::with(['poProduk', 'detailProduksi.produkJadi'])
+                        ->latest()
                         ->get();
 
-        $bahanList = BahanProduksi::all();
-        $products  = ProdukJadi::all();
+        $poList   = PoProduk::whereNotIn('status_po', ['SELESAI', 'DIKIRIM'])->get();
+        $products = ProdukJadi::all();
 
-        return view('production.log_produksi', compact('logs', 'poActive', 'bahanList', 'products'));
+        return view('production.log_produksi', compact(
+            'logProduksi',
+            'poList',
+            'products',
+            'selectedPoNo'
+        ));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'no_po_produk'      => 'required',
-            'tgl_produksi'      => 'required|date',
-            'rentang_tgl_exp'   => 'required|date',
-            'waktu_produksi'    => 'required',
-            'jml_grade_A'       => 'required|integer|min:0',
-            'jml_grade_B'       => 'required|integer|min:0',
-            'id_produk_grade_A' => 'required',
-            'id_produk_grade_B' => 'nullable',
-            'bahan_ids'         => 'required|array',
-            'bahan_qty'         => 'required|array',
-            'ket'               => 'nullable|string',
+            'no_po_produk'    => 'required|exists:po_produk,no_po_produk',
+            'tgl_produksi'    => 'required|date',
+            'waktu_produksi'  => 'nullable|string',
+            'rentang_tgl_exp' => 'nullable|date',
+            'produk_ids'      => 'required|array|min:1',
+            'produk_qty'      => 'required|array|min:1',
+            'jml_grade_A'     => 'required|numeric|min:0',
+            'jml_grade_B'     => 'nullable|numeric|min:0',
         ]);
 
         DB::transaction(function () use ($request) {
-            // 1. Simpan Header Log Produksi (Otomatis APPROVED jika diinput manual oleh Admin)
+            $gradeA = (int) $request->jml_grade_A;
+            $gradeB = (int) ($request->jml_grade_B ?? 0);
+
+            // 1. Simpan Header Log Produksi
             $log = LogProduksi::create([
                 'no_po_produk'    => $request->no_po_produk,
                 'tgl_produksi'    => $request->tgl_produksi,
-                'rentang_tgl_exp' => $request->rentang_tgl_exp,
-                'waktu_produksi'  => $request->waktu_produksi,
-                'jml_grade_A'     => $request->jml_grade_A,
-                'jml_grade_B'     => $request->jml_grade_B,
+                'waktu_produksi'  => $request->waktu_produksi ?? 'Shift Pagi',
+                'rentang_tgl_exp' => $request->rentang_tgl_exp ?? date('Y-m-d', strtotime('+3 months')),
+                'jml_grade_A'     => $gradeA,
+                'jml_grade_B'     => $gradeB,
                 'status_approval' => 'APPROVED',
-                'ket'             => $request->ket,
+                'ket'             => $request->ket ?? 'Batch penggorengan dapur',
             ]);
 
-            // 2. Pemotongan Stok Bahan Baku Dapur
-            foreach ($request->bahan_ids as $index => $idBahan) {
-                $qtyPakai = $request->bahan_qty[$index] ?? 0;
-                if ($idBahan && $qtyPakai > 0) {
-                    $log->bahanProduksi()->attach($idBahan, ['qty_dipakai' => $qtyPakai]);
-                    BahanProduksi::where('id_bahan', $idBahan)->decrement('qty_stok', $qtyPakai);
+            // 2. Simpan Multi-Item Varian yang Digoreng ke DetailProduksi
+            foreach ($request->produk_ids as $index => $idProduk) {
+                $qty = (int) ($request->produk_qty[$index] ?? 0);
+
+                if ($idProduk && $qty > 0) {
+                    DetailProduksi::create([
+                        'no_batch'        => $log->no_batch,
+                        'id_produk_jadi'  => $idProduk,
+                        'jml_produk_jadi' => $qty,
+                    ]);
+
+                    // UPDATE STOK GRADE A: Tambahkan stok ke produk varian utama yang digoreng
+                    $produk = ProdukJadi::find($idProduk);
+                    if ($produk) {
+                        $produk->increment('stok', $qty);
+                    }
                 }
             }
 
-            // 3. Penambahan Hasil QC Grade A ke Stok Fisik FG
-            if ($request->jml_grade_A > 0) {
-                DetailProduksi::create([
-                    'id_produk_jadi'  => $request->id_produk_grade_A,
-                    'no_batch'        => $log->no_batch,
-                    'jml_produk_jadi' => $request->jml_grade_A,
-                ]);
-
-                ProdukJadi::where('id_produk_jadi', $request->id_produk_grade_A)
-                    ->increment('stok', $request->jml_grade_A);
+            // 3. UPDATE STOK GRADE B (REMAHAN): 
+            // Tambahkan hasil remahan ke produk penampung Remahan (misal nama produk mengandung 'Remahan')
+            if ($gradeB > 0) {
+                $produkRemahan = ProdukJadi::where('nama_produk', 'LIKE', '%Remahan%')->first();
+                if ($produkRemahan) {
+                    $produkRemahan->increment('stok', $gradeB);
+                }
             }
 
-            // 4. Penambahan Hasil QC Grade B (Remahan)
-            if ($request->jml_grade_B > 0 && $request->id_produk_grade_B) {
-                DetailProduksi::create([
-                    'id_produk_jadi'  => $request->id_produk_grade_B,
-                    'no_batch'        => $log->no_batch,
-                    'jml_produk_jadi' => $request->jml_grade_B,
-                ]);
-
-                ProdukJadi::where('id_produk_jadi', $request->id_produk_grade_B)
-                    ->increment('stok', $request->jml_grade_B);
+            // 4. Update Status PO ke PROSES jika PENDING
+            $po = PoProduk::find($request->no_po_produk);
+            if ($po && $po->status_po === 'PENDING') {
+                $po->update(['status_po' => 'PROSES']);
             }
-
-            // OTOMATISASI 1: Ubah Status PO Acuan Menjadi "PROSES"
-            PoProduk::where('no_po_produk', $request->no_po_produk)
-                ->update(['status_po' => 'PROSES']);
         });
 
         return redirect()->route('log-produksi.index')
-                         ->with('success', 'Batch Log Produksi disimpan! Status PO otomatis diperbarui ke PROSES.');
-    }
-
-    // FUNGSI BARU: Approval Admin untuk Batch dari PO Pelanggan
-    public function approveBatch($id)
-    {
-        $log = LogProduksi::findOrFail($id);
-        $log->update(['status_approval' => 'APPROVED']);
-
-        return redirect()->back()->with('success', 'Batch produksi berhasil disetujui Admin!');
+                         ->with('success', 'Batch penggorengan berhasil dicatat & stok Grade A dan Grade B (Remahan) berhasil diperbarui!');
     }
 }

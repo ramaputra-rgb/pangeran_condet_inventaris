@@ -16,7 +16,7 @@ class ShipmentController extends Controller
     {
         $suratJalanList = SuratJalan::with('poProduk')->latest()->get();
         $shipments      = LogPengiriman::with('poProduk')->latest()->get();
-        $poActive       = PoProduk::whereIn('status_po', ['PENDING', 'PROSES', 'DIKIRIM'])->get();
+        $poActive       = PoProduk::whereIn('status_po', ['PENDING', 'PROSES', 'STOK_DIPOTONG', 'DIKIRIM'])->get();
 
         $totalSj          = $suratJalanList->count();
         $pengirimanProses = $shipments->where('status_pengiriman', 'DIPROSES')->count();
@@ -54,7 +54,7 @@ class ShipmentController extends Controller
             ]);
 
             if ($request->no_po_produk) {
-                // OTOMATISASI 2: Saat Surat Jalan Terbit, Status PO berubah ke "DIKIRIM"
+                // Saat Surat Jalan Terbit, perbarui reference & ubah status ke DIKIRIM
                 PoProduk::where('no_po_produk', $request->no_po_produk)
                     ->update([
                         'no_ref'    => $sj->no_ref,
@@ -76,8 +76,8 @@ class ShipmentController extends Controller
     public function updateShipmentStatus(Request $request, $id)
     {
         $request->validate([
-            'status_pengiriman' => 'required|in:DIPROSES,DIKIRIM,SELESAI',
-            'bukti_serah_terima'=> 'nullable|string',
+            'status_pengiriman'  => 'required|in:DIPROSES,DIKIRIM,SELESAI',
+            'bukti_serah_terima' => 'nullable|string',
         ]);
 
         DB::transaction(function () use ($request, $id) {
@@ -89,27 +89,17 @@ class ShipmentController extends Controller
                 'bukti_serah_terima' => $request->bukti_serah_terima ?? $log->bukti_serah_terima,
             ]);
 
-            // OTOMATISASI 3: Jika Status Pengiriman berubah ke SELESAI
+            // Saat pengiriman selesai, cukup update status_po ke SELESAI
             if ($request->status_pengiriman === 'SELESAI' && $oldStatus !== 'SELESAI') {
-                // 1. Ubah Status PO ke SELESAI
                 PoProduk::where('no_po_produk', $log->no_po_produk)
                     ->update(['status_po' => 'SELESAI']);
-
-                // 2. Ambil data alokasi PO ini untuk memotong stok fisik gudang permanen
-                $alokasiList = DetailAlokasiPo::where('no_po_produk', $log->no_po_produk)->get();
-
-                foreach ($alokasiList as $alokasi) {
-                    // Potong stok fisik produk jadi
-                    ProdukJadi::where('id_produk_jadi', $alokasi->id_produk_jadi)
-                        ->decrement('stok', $alokasi->jml_alokasi);
-                }
-
-                // 3. Hapus kuncian alokasi stok PO karena pesanan telah sukses terkirim
-                DetailAlokasiPo::where('no_po_produk', $log->no_po_produk)->delete();
+                    
+                // CATATAN: DetailAlokasiPo::delete() & decrement stok DIHAPUS 
+                // agar tidak terjadi double decrement & detail PO tidak ter-reset!
             }
         });
 
         return redirect()->route('shipments.index')
-                         ->with('success', 'Status pengiriman diperbarui! Jika SELESAI, stok fisik otomatis dipotong & alokasi dilepas.');
+                        ->with('success', 'Status pengiriman berhasil diperbarui menjadi SELESAI!');
     }
 }

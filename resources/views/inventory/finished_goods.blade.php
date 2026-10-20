@@ -86,8 +86,8 @@
             @forelse($products as $prod)
             @php
                 // Hitung total alokasi PO khusus untuk produk ini
-                $stokTerkunci = $prod->detailAlokasiPo->sum('jml_alokasi');
-                $stokBebasJual = max(0, $prod->stok - $stokTerkunci);
+                $stokTerkunci = $prod->stok_terkunci_po;
+                $stokBebasJual = $prod->stok_atp;
             @endphp
             <tr class="hover:bg-gray-50/50">
                 <!-- 1. ID SKU -->

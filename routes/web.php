@@ -34,7 +34,7 @@ Route::post('/shipments/update-status/{id}', [ShipmentController::class, 'update
 Route::get('/po-produk', [PoProdukController::class, 'index'])->name('po-produk.index');
 Route::post('/po-produk/store', [PoProdukController::class, 'store'])->name('po-produk.store');
 Route::post('/po-produk/potong-stok/{id}', [PoProdukController::class, 'potongStokReady'])->name('po-produk.potong-stok');
-Route::post('/po-produk/buat-batch/{id}', [PoProdukController::class, 'buatProdukBatch'])->name('po-produk.buat-batch');
+Route::get('/po-produk/buat-batch/{id}', [PoProdukController::class, 'buatProdukBatch'])->name('po-produk.buat-batch');
 Route::post('/po-produk/update-status/{id}', [PoProdukController::class, 'updateStatus'])->name('po-produk.update-status');
 
 // Modul Log Produksi
