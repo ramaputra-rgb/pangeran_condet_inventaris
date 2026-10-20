@@ -106,10 +106,13 @@
                     <i data-lucide="help-circle" class="w-4 h-4"></i>
                     <span>Bantuan Pabrik</span>
                 </a>
-                <a href="#" class="flex items-center space-x-3 px-3.5 py-2 rounded-xl hover:bg-red-50 text-pc-maroon transition">
-                    <i data-lucide="log-out" class="w-4 h-4"></i>
-                    <span>Keluar Sesi</span>
-                </a>
+                <form action="{{ route('logout') }}" method="POST" class="w-full">
+                    @csrf
+                    <button type="submit" class="w-full flex items-center space-x-3 px-3.5 py-2 rounded-xl hover:bg-red-50 text-pc-maroon transition text-left cursor-pointer">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                        <span>Keluar Sesi</span>
+                    </button>
+                </form>
             </div>
         </aside>
 
@@ -124,7 +127,7 @@
                         <span>Rumah Produksi Condet • Shift Pagi (Aktif)</span>
                     </span>
                     <span class="text-gray-400 font-medium flex items-center gap-1">
-                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i> 25 Agustus 2024
+                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i> {{ date('d F Y') }}
                     </span>
                 </div>
 
@@ -136,18 +139,40 @@
                     </button>
                     <div class="flex items-center space-x-3 border-l border-gray-100 pl-4">
                         <div class="w-8 h-8 rounded-full bg-pc-maroon text-white font-extrabold flex items-center justify-center text-xs shadow-sm">
-                            A
+                            {{ strtoupper(substr(Auth::user()->name ?? Auth::user()->username ?? 'A', 0, 1)) }}
                         </div>
                         <div>
-                            <p class="font-bold text-pc-dark leading-none">Admin123</p>
-                            <p class="text-[10px] text-gray-400 font-semibold mt-0.5">Kepala Operasional / Admin</p>
+                            <p class="font-bold text-pc-dark leading-none">{{ Auth::user()->name ?? 'Owner Pangeran Condet' }}</p>
+                            <p class="text-[10px] text-gray-400 font-semibold mt-0.5">Pemilik Usaha (Owner)</p>
                         </div>
+                        <form action="{{ route('logout') }}" method="POST" class="inline">
+                            @csrf
+                            <button type="submit" title="Keluar Sesi" class="ml-2 p-1.5 text-gray-400 hover:text-pc-maroon rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                                <i data-lucide="log-out" class="w-4 h-4"></i>
+                            </button>
+                        </form>
                     </div>
                 </div>
             </header>
 
             <!-- Dynamic Content Area -->
             <main class="p-6 space-y-6">
+                @if(session('success'))
+                    <div class="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
+                            <span>{{ session('success') }}</span>
+                        </div>
+                    </div>
+                @endif
+                @if(session('error'))
+                    <div class="p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs font-semibold flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="alert-circle" class="w-4 h-4 text-red-600"></i>
+                            <span>{{ session('error') }}</span>
+                        </div>
+                    </div>
+                @endif
                 @yield('content')
             </main>
         </div>

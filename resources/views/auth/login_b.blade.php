@@ -134,7 +134,7 @@
 
     <!-- Sisi Kiri -->
     <div class="left-section">
-        <div class="brand-subtitle">PANGERAN JAYA</div>
+        <div class="brand-subtitle">PANGERAN JAYAs</div>
         <div class="brand-title">RENGGINANG IKAN</div>
         <div class="brand-desc">PANGERAN CONDET</div>
     </div>
