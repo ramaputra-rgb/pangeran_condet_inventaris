@@ -79,6 +79,8 @@ Route::post('/log-produksi/approve/{id}', [LogProduksiController::class, 'approv
     Route::post('/finished-goods/store', [FinishedGoodsController::class, 'storeProduct'])->name('finished-goods.store');
     Route::post('/finished-goods/update-stock/{id}', [FinishedGoodsController::class, 'updateStock'])->name('finished-goods.update-stock');
 
-// SPK & Serah Terima Hasil Produksi Dapur
-Route::post('/production-batch', [ProductionBatchController::class, 'store'])->name('production-batch.store');
-Route::patch('/production-batch/{id}/accept', [FinishedGoodsController::class, 'acceptBatch'])->name('production-batch.accept');
+    // SPK & Serah Terima Hasil Produksi Dapur
+    Route::post('/production-batch', [ProductionBatchController::class, 'store'])->name('production-batch.store');
+    Route::patch('/production-batch/{id}/accept', [FinishedGoodsController::class, 'acceptBatch'])->name('production-batch.accept');
+
+});
