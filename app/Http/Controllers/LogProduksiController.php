@@ -19,14 +19,65 @@ class LogProduksiController extends Controller
                         ->latest()
                         ->get();
 
-        $poList   = PoProduk::whereNotIn('status_po', ['SELESAI', 'DIKIRIM'])->get();
+        $poList = PoProduk::with(['detailAlokasi.produkJadi', 'logProduksi.detailProduksi'])
+                    ->where(function ($query) use ($selectedPoNo) {
+                        $query->whereNotIn('status_po', ['SELESAI', 'DIKIRIM']);
+                        if ($selectedPoNo) {
+                            $query->orWhere('no_po_produk', $selectedPoNo);
+                        }
+                    })
+                    ->latest()
+                    ->get();
+
         $products = ProdukJadi::all();
+
+        // Mapping pesanan barang rengginang per PO agar otomatis & konsisten
+        $poDataMap = [];
+        foreach ($poList as $po) {
+            $hasilGorengPerProduk = [];
+            foreach ($po->logProduksi as $log) {
+                foreach ($log->detailProduksi as $det) {
+                    $idProd = $det->id_produk_jadi;
+                    $hasilGorengPerProduk[$idProd] = ($hasilGorengPerProduk[$idProd] ?? 0) + $det->jml_produk_jadi;
+                }
+            }
+
+            $items = [];
+            foreach ($po->detailAlokasi as $alokasi) {
+                $idProd = $alokasi->id_produk_jadi;
+                $targetQty = (int) $alokasi->jml_alokasi;
+                $sudahGoreng = (int) ($hasilGorengPerProduk[$idProd] ?? 0);
+                $sisaQty = max(0, $targetQty - $sudahGoreng);
+                $stokGudang = (int) ($alokasi->produkJadi->stok ?? 0);
+
+                $items[] = [
+                    'id_produk_jadi' => $idProd,
+                    'nama_produk'    => $alokasi->produkJadi->nama_produk ?? ('Produk #' . $idProd),
+                    'target_qty'     => $targetQty,
+                    'sudah_goreng'   => $sudahGoreng,
+                    'sisa_qty'       => $sisaQty,
+                    'stok_gudang'    => $stokGudang,
+                    'qty_default'    => $sisaQty > 0 ? $sisaQty : $targetQty,
+                ];
+            }
+
+            $poDataMap[$po->no_po_produk] = [
+                'no_po_produk'    => $po->no_po_produk,
+                'nama_pelanggan'  => $po->nama_pelanggan,
+                'nama_penerima'   => $po->nama_penerima ?? $po->nama_pelanggan,
+                'tipe_jual'       => $po->tipe_jual,
+                'status_po'       => $po->status_po,
+                'jumlah_po'       => (int) $po->jumlah_po,
+                'items'           => $items,
+            ];
+        }
 
         return view('production.log_produksi', compact(
             'logProduksi',
             'poList',
             'products',
-            'selectedPoNo'
+            'selectedPoNo',
+            'poDataMap'
         ));
     }
 
@@ -96,5 +147,14 @@ class LogProduksiController extends Controller
 
         return redirect()->route('log-produksi.index')
                          ->with('success', 'Batch penggorengan berhasil dicatat & stok Grade A dan Grade B (Remahan) berhasil diperbarui!');
+    }
+
+    public function approveBatch($id)
+    {
+        $log = LogProduksi::findOrFail($id);
+        $log->update(['status_approval' => 'APPROVED']);
+
+        return redirect()->route('log-produksi.index')
+                         ->with('success', 'Batch BATCH-00' . $id . ' berhasil di-approve!');
     }
 }

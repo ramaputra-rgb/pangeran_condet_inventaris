@@ -22,6 +22,9 @@ class PoProduk extends Model
         'status_po',
         'alamat_pelanggan',
         'no_ref',
+        'nomor_pesanan_ecommerce',
+        'sumber_transaksi',
+        'catatan',
     ];
 
     public function suratJalan()

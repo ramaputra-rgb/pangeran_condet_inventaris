@@ -111,6 +111,11 @@
                     <span class="text-[9px] font-extrabold px-2 py-0.5 rounded bg-gray-100 text-gray-600 mt-1 inline-block">
                         {{ $po->tipe_jual }}
                     </span>
+                    @if($po->nomor_pesanan_ecommerce)
+                        <span class="inline-flex items-center gap-1 text-[9px] font-extrabold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 mt-1 ml-1" title="Pesanan Otomatis dari E-Commerce">
+                            🛒 {{ $po->nomor_pesanan_ecommerce }}
+                        </span>
+                    @endif
                 </td>
 
                 <!-- KOLOM DETAIL BREAKDOWN PER-ITEM PRODUK & PROGRES REAL-TIME -->
