@@ -81,6 +81,9 @@ class LogProduksiController extends Controller
         ));
     }
 
+    /**
+     * INPUT HASIL PRODUKSI & ALOKASI STOK DUAL-GRADE (Disesuaikan dengan Activity Diagram Hal. 10)
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -110,7 +113,7 @@ class LogProduksiController extends Controller
                 'ket'             => $request->ket ?? 'Batch penggorengan dapur',
             ]);
 
-            // 2. Simpan Multi-Item Varian yang Digoreng ke DetailProduksi
+            // 2. Simpan Multi-Item Varian yang Digoreng ke DetailProduksi & Alokasi Stok Grade A (Node C)
             foreach ($request->produk_ids as $index => $idProduk) {
                 $qty = (int) ($request->produk_qty[$index] ?? 0);
 
@@ -121,7 +124,7 @@ class LogProduksiController extends Controller
                         'jml_produk_jadi' => $qty,
                     ]);
 
-                    // UPDATE STOK GRADE A: Tambahkan stok ke produk varian utama yang digoreng
+                    // Alokasi Stok Produk Asli (Grade A) ke Gudang Produk Jadi
                     $produk = ProdukJadi::find($idProduk);
                     if ($produk) {
                         $produk->increment('stok', $qty);
@@ -129,24 +132,32 @@ class LogProduksiController extends Controller
                 }
             }
 
-            // 3. UPDATE STOK GRADE B (REMAHAN): 
-            // Tambahkan hasil remahan ke produk penampung Remahan (misal nama produk mengandung 'Remahan')
+            // 3. Alokasi Stok Produk Remahan (Grade B) (Node C di Activity Diagram Hal. 10)
             if ($gradeB > 0) {
                 $produkRemahan = ProdukJadi::where('nama_produk', 'LIKE', '%Remahan%')->first();
                 if ($produkRemahan) {
                     $produkRemahan->increment('stok', $gradeB);
+                } else {
+                    // Jika varian remahan belum ada, buat otomatis sebagai penampung
+                    $produkRemahan = ProdukJadi::create([
+                        'nama_produk' => 'Rengginang Remahan (Grade B)',
+                        'varian'      => 'Mix',
+                        'netto'       => '500g',
+                        'harga_jual'  => 15000,
+                        'stok'        => $gradeB,
+                    ]);
                 }
             }
 
-            // 4. Update Status PO ke PROSES jika PENDING
+            // 4. Update Status PO Menjadi "DIKIRIM / SIAP DIKIRIM" setelah QC Selesai (Activity Diagram Hal. 10)
             $po = PoProduk::find($request->no_po_produk);
-            if ($po && $po->status_po === 'PENDING') {
-                $po->update(['status_po' => 'PROSES']);
+            if ($po) {
+                $po->update(['status_po' => 'DIKIRIM']); // Menandakan siap dikirim & mengaktifkan tombol cetak surat jalan
             }
         });
 
         return redirect()->route('log-produksi.index')
-                         ->with('success', 'Batch penggorengan berhasil dicatat & stok Grade A dan Grade B (Remahan) berhasil diperbarui!');
+                         ->with('success', 'Hasil Produksi Selesai! Stok Grade A & Grade B dialokasikan dan Status PO diperbarui menjadi Siap Dikirim.');
     }
 
     public function approveBatch($id)

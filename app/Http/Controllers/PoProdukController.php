@@ -38,6 +38,10 @@ class PoProdukController extends Controller
         ));
     }
 
+    /**
+     * INPUT DATA PO PELANGGAN (Disesuaikan dengan Activity Diagram Hal. 6 & 8)
+     * Includes: Pengecekan Duplikasi & Otomatisasi Kartu Batch Produksi (Node B)
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -50,14 +54,25 @@ class PoProdukController extends Controller
             'produk_ids'         => 'required|array|min:1',
             'produk_qty'         => 'required|array|min:1',
             'no_ref'             => 'nullable',
+            'buat_batch_langsung'=> 'nullable|boolean',
         ]);
+
+        // 1. Cek Duplikasi PO Berdasarkan ['nama_pelanggan', 'tgl_po'] (Activity Diagram Hal. 6)
+        $existingPo = PoProduk::where('nama_pelanggan', trim($request->nama_pelanggan))
+            ->where('tgl_po', $request->tgl_po)
+            ->first();
+
+        if ($existingPo) {
+            return redirect()->back()->with('error', 'Data Sudah Terdaftar! PO untuk pelanggan ini pada tanggal tersebut sudah pernah dibuat.');
+        }
 
         DB::transaction(function () use ($request) {
             $totalQtyPo = array_sum($request->produk_qty);
 
+            // Simpan Data PO Pelanggan Baru
             $po = PoProduk::create([
-                'nama_pelanggan'     => $request->nama_pelanggan,
-                'nama_penerima'      => $request->nama_penerima,
+                'nama_pelanggan'     => trim($request->nama_pelanggan),
+                'nama_penerima'      => trim($request->nama_penerima),
                 'tipe_jual'          => $request->tipe_jual,
                 'jumlah_po'          => $totalQtyPo,
                 'tgl_po'             => $request->tgl_po,
@@ -67,6 +82,7 @@ class PoProdukController extends Controller
                 'no_ref'             => $request->no_ref ?: null,
             ]);
 
+            // Simpan Detail Alokasi Item PO
             foreach ($request->produk_ids as $index => $idProduk) {
                 $qty = $request->produk_qty[$index] ?? 0;
                 if ($idProduk && $qty > 0) {
@@ -77,10 +93,24 @@ class PoProdukController extends Controller
                     ]);
                 }
             }
+
+            // 2. OTOMATISASI NODE B: Buat Kartu Batch Baru jika tombol "Buat Batch Produksi" ditekan (Activity Diagram Hal. 6 & 8)
+            if ($request->filled('buat_batch_langsung') || $request->input('action') === 'buat_batch') {
+                LogProduksi::create([
+                    'no_po_produk' => $po->no_po_produk,
+                    'tgl_produksi' => now(),
+                    'jml_grade_A'  => 0,
+                    'jml_grade_B'  => 0,
+                    'ket'          => 'Batch otomatis dipicu dari PO Pelanggan #' . $po->no_po_produk,
+                ]);
+
+                // Update Status PO menjadi PROSES (Dalam Proses Produksi)
+                $po->update(['status_po' => 'PROSES']);
+            }
         });
 
         return redirect()->route('po-produk.index')
-                         ->with('success', 'Pesanan PO Pelanggan (Multi-Item) berhasil dicatat!');
+                         ->with('success', 'Data Berhasil Disimpan! PO Pelanggan dicatat dan Kartu Batch Produksi otomatis diterbitkan.');
     }
 
     public function potongStokReady($id)
@@ -105,10 +135,32 @@ class PoProdukController extends Controller
                         ->with('success', 'Stok ready berhasil dipotong! Silakan terbitkan Surat Jalan.');
     }
 
+    /**
+     * TRIGGER BATCH PRODUKSI MANUAL (Node B)
+     */
     public function buatProdukBatch(Request $request, $id)
     {
-        return redirect()->route('log-produksi.index', ['no_po' => $id])
-                         ->with('info', 'Silakan input detail batch penggorengan dapur untuk PO-00' . $id);
+        $po = PoProduk::findOrFail($id);
+
+        DB::transaction(function () use ($po) {
+            // Cek apakah batch sudah ada untuk PO ini
+            $existingLog = LogProduksi::where('no_po_produk', $po->no_po_produk)->first();
+            
+            if (!$existingLog) {
+                LogProduksi::create([
+                    'no_po_produk' => $po->no_po_produk,
+                    'tgl_produksi' => now(),
+                    'jml_grade_A'  => 0,
+                    'jml_grade_B'  => 0,
+                    'ket'          => 'Batch dipicu untuk PO #' . $po->no_po_produk,
+                ]);
+            }
+
+            $po->update(['status_po' => 'PROSES']);
+        });
+
+        return redirect()->route('log-produksi.index')
+                         ->with('success', 'Kartu Batch Produksi berhasil dibuat! Status PO berganti menjadi PROSES.');
     }
 
     public function updateStatus(Request $request, $id)
