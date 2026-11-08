@@ -3,185 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pangeran Condet - Manufaktur & Distribusi</title>
-    
-    <!-- Font Plus Jakarta Sans -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Lucide Icons Script (Sama persis dengan Icon Set Figma) -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
-    <!-- Tailwind CSS Config -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                    },
-                    colors: {
-                        pc: {
-                            maroon: '#B71C1C',
-                            orange: '#F47C20',
-                            yellow: '#FFC107',
-                            cream: '#FFF3E0',
-                            dark: '#4E2A13',
-                            bg: '#FAF9F6',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <title>{{ $title ?? 'ERP UD Pangeran Condet' }}</title>
+    <!-- CSS Native Utama (Offline) -->
+    <link rel="stylesheet" href="{{ asset('css/custom-style.css') }}">
 </head>
-<body class="bg-[#FAF9F6] text-pc-dark font-sans antialiased">
-
-    <div class="flex h-screen overflow-hidden">
+<body>
+    <div class="layout-wrapper">
         
-        <!-- SIDEBAR NAVIGATION -->
-        <aside class="w-64 bg-white border-r border-gray-100 flex flex-col justify-between shrink-0 shadow-sm">
+        <!-- SIDEBAR CONTAINER -->
+        <aside class="sidebar-container no-print">
             <div>
-                <!-- Header Brand Logo (Mahkota Pangeran Condet) -->
-                <div class="p-4 border-b border-gray-100 flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-pc-maroon to-pc-orange flex items-center justify-center text-white shadow-md">
-                        <i data-lucide="crown" class="w-5 h-5 text-pc-yellow"></i>
+                <!-- Brand Logo Header -->
+                <div class="brand-header">
+                    <div class="brand-logo-icon">
+                        <span style="color:#fff; font-weight:900; font-size:1.1rem;">👑</span>
                     </div>
                     <div>
-                        <h1 class="font-extrabold text-pc-maroon text-sm leading-tight tracking-tight">Pangeran Condet</h1>
-                        <p class="text-[9px] text-gray-400 font-semibold">Manufaktur & Distribusi Re...</p>
+                        <h1 class="brand-title">Pangeran Condet</h1>
+                        <p class="brand-subtitle">Manufaktur & Distribusi Rengginang</p>
                     </div>
                 </div>
 
                 <!-- Navigasi Menu Sidebar -->
-                <nav class="p-3 space-y-4 text-xs font-semibold">
-                    <div>
-                        <a href="{{ route('dashboard') }}" 
-                           class="flex items-center space-x-3 px-3.5 py-2.5 rounded-xl transition {{ request()->routeIs('dashboard') ? 'bg-pc-cream text-pc-maroon font-bold border border-pc-orange/20 shadow-sm' : 'text-gray-500 hover:bg-gray-50' }}">
-                            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-                            <span>Dashboard Utama</span>
-                        </a>
-                    </div>
+                <nav class="nav-menu">
+                    <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        <span>Dashboard Utama</span>
+                    </a>
 
-                    <!-- Group 1: MANAJEMEN INVENTARIS -->
-                    <div class="space-y-1">
-                        <a href="{{ route('raw-materials.index') }}" 
-                           class="flex items-center space-x-3 px-3.5 py-2 rounded-xl transition {{ request()->routeIs('raw-materials.index') ? 'bg-pc-cream text-pc-maroon font-bold border border-pc-orange/20' : 'text-gray-600 hover:bg-gray-50' }}">
-                            <i data-lucide="shopping-bag" class="w-4 h-4"></i>
-                            <span>Manajemen Stok Bahan Produksi</span>
-                        </a>
+                    <a href="{{ route('raw-materials.index') }}" class="nav-link {{ request()->routeIs('raw-materials.*') ? 'active' : '' }}">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                        <span>Manajemen Stok Bahan</span>
+                    </a>
 
-                        <a href="{{ route('finished-goods.index') }}" 
-                           class="flex items-center space-x-3 px-3.5 py-2 rounded-xl transition {{ request()->routeIs('finished-goods.index') ? 'bg-pc-cream text-pc-maroon font-bold border border-pc-orange/20' : 'text-gray-600 hover:bg-gray-50' }}">
-                            <i data-lucide="package-check" class="w-4 h-4"></i>
-                            <span>Master Produk Jadi</span>
-                        </a>
+                    <a href="{{ route('finished-goods.index') }}" class="nav-link {{ request()->routeIs('finished-goods.*') ? 'active' : '' }}">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l6 3.43a2 2 0 0 0 2.06 0l6-3.43a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L11 9.5a2 2 0 0 0-2.06 0l-6.03 3.42Z"/><path d="m7 16.5 4-2.3 4 2.3"/><path d="M11 9.5v7"/></svg>
+                        <span>Master Produk Jadi</span>
+                    </a>
 
-                        <a href="{{ route('po-produk.index') }}" 
-                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl transition {{ request()->routeIs('po-produk.index') ? 'bg-pc-cream text-pc-maroon font-bold border border-pc-orange/20' : 'text-gray-600 hover:bg-gray-50' }}">
-                            <i data-lucide="shopping-cart" class="w-4 h-4"></i>
-                            <span>Po Produk</span>
-                        </a>
+                    <a href="{{ route('po-produk.index') }}" class="nav-link {{ request()->routeIs('po-produk.*') ? 'active' : '' }}">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                        <span>PO Produk</span>
+                    </a>
 
-                        <a href="{{ route('log-produksi.index') }}" 
-                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl transition {{ request()->routeIs('log-produksi.index') ? 'bg-pc-cream text-pc-maroon font-bold border border-pc-orange/20' : 'text-gray-600 hover:bg-gray-50' }}">
-                            <i data-lucide="history" class="w-4 h-4"></i>
-                            <span>Log Produksi</span>
-                        </a>
+                    <a href="{{ route('log-produksi.index') }}" class="nav-link {{ request()->routeIs('log-produksi.*') ? 'active' : '' }}">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span>Log Produksi</span>
+                    </a>
 
-                        <a href="{{ route('shipments.index') }}" 
-                            class="flex items-center space-x-3 px-3.5 py-2 rounded-xl transition {{ request()->routeIs('shipments.index') ? 'bg-pc-cream text-pc-maroon font-bold border border-pc-orange/20' : 'text-gray-600 hover:bg-gray-50' }}">
-                            <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-                            <span>Log Pengiriman</span>
-                        </a>
-                    </div>
+                    <a href="{{ route('shipments.index') }}" class="nav-link {{ request()->routeIs('shipments.*') ? 'active' : '' }}">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                        <span>Log Pengiriman</span>
+                    </a>
                 </nav>
             </div>
 
-            <!-- Footer Sidebar (Bantuan & Logout) -->
-            <div class="p-3 border-t border-gray-100 space-y-1 text-xs font-semibold text-gray-500">
-                <a href="#" class="flex items-center space-x-3 px-3.5 py-2 rounded-xl hover:bg-gray-50 transition">
-                    <i data-lucide="help-circle" class="w-4 h-4"></i>
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <a href="#" class="nav-link">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     <span>Bantuan Pabrik</span>
                 </a>
-                <form action="{{ route('logout') }}" method="POST" class="w-full">
+                <form action="{{ route('logout') }}" method="POST">
                     @csrf
-                    <button type="submit" class="w-full flex items-center space-x-3 px-3.5 py-2 rounded-xl hover:bg-red-50 text-pc-maroon transition text-left cursor-pointer">
-                        <i data-lucide="log-out" class="w-4 h-4"></i>
-                        <span>Keluar Sesi</span>
+                    <button type="submit" class="nav-link btn-logout">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        <span class="font-bold">Keluar Sesi</span>
                     </button>
                 </form>
             </div>
         </aside>
 
         <!-- MAIN CONTENT AREA -->
-        <div class="flex-1 flex flex-col overflow-y-auto">
+        <div class="main-content">
             
-            <!-- Top Header Bar -->
-            <header class="bg-white border-b border-gray-100 px-6 py-3 flex justify-between items-center sticky top-0 z-10 shadow-sm">
-                <div class="flex items-center space-x-3 text-xs">
-                    <span class="flex items-center space-x-2 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold px-3 py-1 rounded-full">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>Rumah Produksi Condet • Shift Pagi (Aktif)</span>
+            <!-- TOP BAR HEADER -->
+            <header class="top-header no-print">
+                <div class="flex items-center gap-3">
+                    <span class="status-pill">
+                        <span class="pulse-dot"></span>
+                        Rumah Produksi Condet • Shift Pagi (Aktif)
                     </span>
-                    <span class="text-gray-400 font-medium flex items-center gap-1">
-                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i> {{ date('d F Y') }}
+                    <span style="font-size:0.6875rem; color: var(--text-muted); font-weight:600;">
+                        📅 {{ \Carbon\Carbon::now()->format('d F Y') }}
                     </span>
                 </div>
 
-                <!-- Admin Profile Badge -->
-                <div class="flex items-center space-x-4 text-xs">
-                    <button class="p-1.5 text-gray-400 hover:text-pc-maroon relative">
-                        <i data-lucide="bell" class="w-4 h-4"></i>
-                        <span class="absolute top-1 right-1 w-2 h-2 bg-pc-maroon rounded-full"></span>
+                <div class="user-profile-box">
+                    <!-- Icon Bell Notification -->
+                    <button type="button" class="icon-btn" title="Notifikasi">
+                        <svg style="width:1.125rem; height:1.125rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                     </button>
-                    <div class="flex items-center space-x-3 border-l border-gray-100 pl-4">
-                        <div class="w-8 h-8 rounded-full bg-pc-maroon text-white font-extrabold flex items-center justify-center text-xs shadow-sm">
-                            {{ strtoupper(substr(Auth::user()->name ?? Auth::user()->username ?? 'A', 0, 1)) }}
-                        </div>
-                        <div>
-                            <p class="font-bold text-pc-dark leading-none">{{ Auth::user()->name ?? 'Owner Pangeran Condet' }}</p>
-                            <p class="text-[10px] text-gray-400 font-semibold mt-0.5">Pemilik Usaha (Owner)</p>
-                        </div>
-                        <form action="{{ route('logout') }}" method="POST" class="inline">
-                            @csrf
-                            <button type="submit" title="Keluar Sesi" class="ml-2 p-1.5 text-gray-400 hover:text-pc-maroon rounded-lg hover:bg-gray-100 transition cursor-pointer">
-                                <i data-lucide="log-out" class="w-4 h-4"></i>
-                            </button>
-                        </form>
+
+                    <div class="avatar-circle">O</div>
+                    <div>
+                        <p class="font-black" style="color: var(--pc-dark); margin:0; font-size:0.75rem;">Owner Pangeran Condet</p>
+                        <p style="font-size: 0.5625rem; color: var(--text-muted); margin:0;">Pemilik Usaha (Owner)</p>
                     </div>
+
+                    <!-- Icon Logout Header -->
+                    <form action="{{ route('logout') }}" method="POST" style="margin-left:0.5rem;">
+                        @csrf
+                        <button type="submit" class="icon-btn" title="Keluar">
+                            <svg style="width:1.125rem; height:1.125rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        </button>
+                    </form>
                 </div>
             </header>
 
-            <!-- Dynamic Content Area -->
-            <main class="p-6 space-y-6">
-                @if(session('success'))
-                    <div class="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="check-circle" class="w-4 h-4 text-emerald-600"></i>
-                            <span>{{ session('success') }}</span>
-                        </div>
-                    </div>
-                @endif
-                @if(session('error'))
-                    <div class="p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs font-semibold flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="alert-circle" class="w-4 h-4 text-red-600"></i>
-                            <span>{{ session('error') }}</span>
-                        </div>
-                    </div>
-                @endif
+            <!-- FLASH ALERT NOTIFICATION -->
+            @if(session('success'))
+                <div style="margin: 1rem 1.5rem 0 1.5rem;" class="alert alert-success">
+                    <span>✓ {{ session('success') }}</span>
+                    <button onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer; font-weight:bold;">✕</button>
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div style="margin: 1rem 1.5rem 0 1.5rem;" class="alert alert-danger">
+                    <span>⚠️ {{ session('error') }}</span>
+                    <button onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer; font-weight:bold;">✕</button>
+                </div>
+            @endif
+
+            <!-- DYNAMIC BODY CONTENT -->
+            <main class="content-body">
                 @yield('content')
             </main>
+
         </div>
-
     </div>
-
-    <!-- Script Render Lucide Icons -->
-    <script>
-        lucide.createIcons();
-    </script>
 </body>
 </html>
