@@ -1,0 +1,187 @@
+/* ==========================================================================
+   GLOBAL DESIGN TOKENS — PANGERAN CONDET ERP
+   Single source of truth for palette, typography, spacing, shape, elevation,
+   and layout measurements sliced from reference/design-tobe.html.
+
+   Breakpoints (documented here; standard CSS media queries cannot read vars):
+   - Laptop / Compact Desktop : <= 1180px (disc size 84px, 2-col rail/stubs)
+   - Tablet / Mobile Nav      : <= 860px  (1-col shell, top horizontal nav)
+   - Mobile                   : <= 520px  (1-col rail & stacked form grids)
+   - Narrow Mobile            : <= 380px  (tighter gutters & ticket stub width)
+   ========================================================================== */
+
+:root {
+  /* ------------------------------------------------------------------------
+     1. Semantic Color Tokens (Light Mode — Warm Editorial Craft Palette)
+     ------------------------------------------------------------------------ */
+  --color-primary: #5B2E18;            /* Main brand brown & primary actions */
+  --color-primary-hover: #7A4527;      /* Secondary brown & hover state */
+  --color-accent: #B06A2C;             /* Caramel accent, focus ring & warm metrics */
+  --color-background: #EADFD0;         /* Warm beige application canvas */
+  --color-surface: #F6EFE5;            /* Cream elevated panels, sidebar & cards */
+  --color-surface-elevated: #FFFFFF;   /* Crisp hover surface on hero buttons */
+  --color-text-primary: #2B1710;       /* Deep espresso readable body ink */
+  --color-text-secondary: #7A6354;     /* Supporting copy, subtitles & metadata */
+  --color-text-on-primary: #F1E6D6;    /* Cream ink on dark brown surfaces */
+  --color-border: #CDB9A0;             /* Dividers, dashed rules & control borders */
+  --color-success: #3F6B3A;            /* Approved, safe stock & completed states */
+  --color-warning: #B06A2C;            /* Caution, pending QC & medium thresholds */
+  --color-danger: #B8432B;             /* Critical stock, overload & destructive actions */
+  --color-danger-text: #B8432B;        /* Danger ink on surface backgrounds */
+  --color-info: #7A4527;               /* Informational emphasis links & labels */
+
+  /* Surface-tuned & component-specific tokens required by reference */
+  --color-hero-text-muted: rgba(241, 230, 214, 0.82);
+  --color-hero-text-subtle: rgba(241, 230, 214, 0.70);
+  --color-hero-line-dotted: rgba(241, 230, 214, 0.35);
+  --color-hero-disc-dashed: rgba(241, 230, 214, 0.45);
+  --color-hero-disc-empty: rgba(241, 230, 214, 0.60);
+  --color-hero-ghost-border: rgba(241, 230, 214, 0.50);
+  --color-hero-ghost-hover: rgba(241, 230, 214, 0.12);
+  --color-nav-badge-active: rgba(241, 230, 214, 0.20);
+  --color-white: #FFFFFF;
+  --color-print-ink: #000000;
+  --color-print-border: #999999;
+  --color-shift-active: #4E9A55;
+  --color-disc-fill-dot: #E6AE70;
+  --color-disc-fill-end: #A8642A;
+  --color-disc-fill-ink: #2B1208;
+  --color-disc-fill-speck: rgba(60, 25, 8, 0.28);
+  --color-disc-alert-start: #D9583C;
+  --color-disc-alert-end: #9E3420;
+  --color-disc-alert-speck: rgba(0, 0, 0, 0.20);
+  --color-backdrop: rgba(26, 17, 12, 0.60);
+  --color-login-overlay-top: rgba(24, 15, 10, 0.58);
+  --color-login-overlay-mid: rgba(24, 15, 10, 0.10);
+  --color-login-overlay-fade: rgba(24, 15, 10, 0.74);
+  --color-login-overlay-bottom: rgba(16, 9, 5, 0.95);
+  --color-success-soft: rgba(63, 107, 58, 0.12);
+  --color-danger-soft: rgba(184, 67, 43, 0.12);
+  --color-warning-soft: rgba(176, 106, 44, 0.14);
+
+  /* Reference Shorthand Token Aliases (mapped directly to semantic tokens) */
+  --bg: var(--color-background);
+  --panel: var(--color-surface);
+  --ink: var(--color-text-primary);
+  --soft: var(--color-text-secondary);
+  --line: var(--color-border);
+  --brown: var(--color-primary);
+  --brown-2: var(--color-primary-hover);
+  --caramel: var(--color-accent);
+  --cream: var(--color-text-on-primary);
+  --alert: var(--color-danger);
+  --alert-ink: var(--color-danger-text);
+  --ok: var(--color-success);
+
+  /* ------------------------------------------------------------------------
+     2. Typography Tokens
+     ------------------------------------------------------------------------ */
+  --font-display: "Young Serif", Georgia, "Times New Roman", serif;
+  --font-body: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: var(--font-display);
+  --body: var(--font-body);
+
+  --font-size-2xs: 0.76rem;
+  --font-size-xs: 0.78rem;
+  --font-size-sm: 0.85rem;
+  --font-size-md: 0.92rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.15rem;
+  --font-size-xl: 1.3rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;
+  --font-size-4xl: 2.7rem;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.05;
+  --line-height-snug: 1.2;
+  --line-height-normal: 1.55;
+
+  /* ------------------------------------------------------------------------
+     3. Spacing Scale Tokens
+     ------------------------------------------------------------------------ */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-11: 44px;
+  --space-14: 56px;
+
+  /* ------------------------------------------------------------------------
+     4. Shape & Elevation Tokens
+     ------------------------------------------------------------------------ */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-2xl: 26px;
+  --radius-shell: 28px;
+  --radius-hero-corner: 110px;
+  --radius-hero-corner-sm: 64px;
+  --radius-pill: 99px;
+  --radius-circle: 50%;
+
+  --shadow-topbar: 0 4px 16px rgba(26, 17, 12, 0.10);
+  --shadow-modal: 0 24px 64px rgba(26, 17, 12, 0.34);
+
+  /* ------------------------------------------------------------------------
+     5. Layout & Shell Geometry
+     ------------------------------------------------------------------------ */
+  --container-max-width: 1520px;
+  --sidebar-width: 272px;
+  --drawer-width: 296px;
+  --modal-max-width: 640px;
+  --z-topbar: 40;
+  --z-backdrop: 50;
+  --z-drawer: 60;
+
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ==========================================================================
+   Dark Mode Token Overrides (System Preference & Explicit Attribute)
+   ========================================================================== */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-background: #1A110C;
+    --color-surface: #261913;
+    --color-text-primary: #F1E6D6;
+    --color-text-secondary: #B39C88;
+    --color-border: #4A3326;
+    --color-primary: #6A3720;
+    --color-primary-hover: #85482B;
+    --color-accent: #E0A062;
+    --color-success: #9CCB86;
+    --color-danger-text: #F07C63;
+    --color-info: #E0A062;
+    --color-success-soft: rgba(156, 203, 134, 0.14);
+    --color-danger-soft: rgba(240, 124, 99, 0.15);
+    --color-warning-soft: rgba(224, 160, 98, 0.16);
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-background: #1A110C;
+  --color-surface: #261913;
+  --color-text-primary: #F1E6D6;
+  --color-text-secondary: #B39C88;
+  --color-border: #4A3326;
+  --color-primary: #6A3720;
+  --color-primary-hover: #85482B;
+  --color-accent: #E0A062;
+  --color-success: #9CCB86;
+  --color-danger-text: #F07C63;
+  --color-info: #E0A062;
+  --color-success-soft: rgba(156, 203, 134, 0.14);
+  --color-danger-soft: rgba(240, 124, 99, 0.15);
+  --color-warning-soft: rgba(224, 160, 98, 0.16);
+}

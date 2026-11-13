@@ -1,214 +1,293 @@
 @extends('layouts.app')
 
+@section('title', 'Pangeran Condet, Pengiriman')
+
 @section('content')
+@php
+    $jalanCount = 0;
+    $selesaiCount = 0;
+    foreach ($shipments as $shp) {
+        if ($shp->status_pengiriman === 'SELESAI') {
+            $selesaiCount++;
+        } else {
+            $jalanCount++;
+        }
+    }
+@endphp
 
-<!-- Header Modul -->
-<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<section class="masthead" aria-labelledby="j-kirim">
     <div>
-        <h2 class="text-xl font-black" style="color: var(--pc-dark); margin:0;">Log Pengiriman & Surat Jalan</h2>
-        <p class="text-xs mt-0.5" style="color: var(--text-muted); margin: 0.25rem 0 0 0;">Rekapitulasi riwayat pengiriman barang, bukti serah terima, dan arsip Surat Jalan ke pelanggan.</p>
+        <span class="eyebrow">Logistik &amp; serah terima</span>
+        <h1 id="j-kirim">Surat Jalan &amp; pelacakan kirim</h1>
+        <p>Terbitkan Surat Jalan untuk PO yang stoknya sudah dipotong, pantau paket dalam perjalanan, dan arsipkan bukti serah terima barang.</p>
     </div>
-    <div class="flex items-center gap-2 no-print">
-        <button onclick="window.print()" class="btn btn-outline">
-            🖨️ Cetak Laporan Pengiriman
-        </button>
+    <div class="acts">
+        <button type="button" class="btn" onclick="openDialog('modal-create-sj')">+ Terbitkan Surat Jalan</button>
     </div>
-</div>
+</section>
 
-<!-- 2 Kartu Ringkasan Top-Bar (Total Pengiriman Harian & Pengiriman Selesai) -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 no-print">
-    <div class="card-summary" style="border-left: 4px solid #2563eb;">
-        <div class="flex justify-between items-start">
-            <p class="card-title uppercase" style="color: #2563eb;">TOTAL PENGIRIMAN HARIAN</p>
+<section class="stub-grid two" aria-label="Ringkasan pengiriman">
+    <x-stub-card
+        title="Pengiriman hari ini"
+        subtitle="Aktivitas pengiriman keluar gudang"
+        :value="number_format($pengirimanHarian ?? 0)"
+        unit="kirim"
+        variant="warm"
+    />
+    <x-stub-card
+        title="Pesanan selesai diterima"
+        subtitle="Arsip Surat Jalan: {{ number_format($suratJalanList->count()) }} dokumen"
+        :value="number_format($pengirimanSelesai ?? $selesaiCount)"
+        unit="selesai"
+    />
+</section>
+
+<section class="panel" id="panel-pengiriman" aria-label="Log Pengiriman dan Surat Jalan">
+    <div class="tabs" role="group" aria-label="Tampilan pengiriman">
+        <button type="button" data-t="log-kirim" aria-selected="true">Log pengiriman ({{ $shipments->count() }})</button>
+        <button type="button" data-t="surat-jalan" aria-selected="false">Arsip Surat Jalan ({{ $suratJalanList->count() }})</button>
+    </div>
+
+    <div id="t-log-kirim" data-filter-box data-total="{{ $shipments->count() }}" data-unit="pengiriman">
+        <div class="controls">
+            <input
+                type="search"
+                class="field grow"
+                data-search
+                placeholder="Cari kode PO, pelanggan, penerima, atau nomor Surat Jalan..."
+                aria-label="Cari log pengiriman"
+            >
+            <button type="button" class="reset-btn" data-reset>Reset</button>
         </div>
-        <h3 class="card-value" style="color: var(--pc-dark);">{{ number_format($pengirimanHarian ?? 0) }} <span style="font-size:0.75rem; color: var(--text-muted);">Pengiriman Hari Ini</span></h3>
-        <p class="font-bold mt-2" style="font-size:0.625rem; color: #2563eb;">📅 Tanggal {{ \Carbon\Carbon::now()->format('d M Y') }}</p>
-    </div>
 
-    <div class="card-summary" style="border-left: 4px solid #10b981;">
-        <div class="flex justify-between items-start">
-            <p class="card-title uppercase" style="color: #059669;">PENGIRIMAN SELESAI</p>
+        <div class="chips">
+            <button type="button" data-f="semua" aria-pressed="true">Semua ({{ $shipments->count() }})</button>
+            <button type="button" data-f="jalan" aria-pressed="false">Diproses / Di jalan ({{ $jalanCount }})</button>
+            <button type="button" data-f="selesai" aria-pressed="false">Selesai ({{ $selesaiCount }})</button>
+            <p>Unggah foto atau catatan penerima untuk menandai pesanan telah selesai diterima.</p>
         </div>
-        <h3 class="card-value" style="color: var(--pc-dark);">{{ number_format($pengirimanSelesai ?? 0) }} <span style="font-size:0.75rem; color: var(--text-muted);">Selesai</span></h3>
-        <p class="font-bold mt-2" style="font-size:0.625rem; color: #059669;">✓ Diterima & Stok Dipotong</p>
-    </div>
-</div>
 
-<!-- TABEL 1: LOG PENGIRIMAN -->
-<div class="table-container mt-6">
-    <div class="table-header-bar">
-        <span class="font-bold" style="color: var(--pc-dark);">🚚 Log Pengiriman Pelanggan</span>
-    </div>
-
-    @if($shipments->isNotEmpty())
-        <div class="table-responsive-wrapper">
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>TANGGAL & ACUAN PO</th>
-                        <th>PELANGGAN & PENERIMA</th>
-                        <th>ALAMAT PENGIRIMAN</th>
-                        <th>SURAT JALAN & KURIR</th>
-                        <th class="text-center">STATUS</th>
-                        <th class="text-center no-print">AKSI</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($shipments as $ship)
+        @if($shipments->isNotEmpty())
+            <ul class="rows">
+                @foreach($shipments as $shp)
                     @php
-                        $po = $ship->poProduk;
-                        $sj = $po ? $po->suratJalan : null;
+                        $isDone = $shp->status_pengiriman === 'SELESAI';
+                        $kodeShp = 'SHP-' . str_pad($shp->id_log_pengiriman, 4, '0', STR_PAD_LEFT);
+                        $kodePo = 'PO-' . str_pad($shp->no_po_produk, 4, '0', STR_PAD_LEFT);
+                        $sj = optional($shp->poProduk)->suratJalan;
+                        $kodeSj = $sj ? ('SJ-' . str_pad($sj->no_ref, 4, '0', STR_PAD_LEFT)) : '';
                     @endphp
-                    <tr>
-                        <td class="font-bold">
-                            <p style="margin:0; font-size: 0.75rem;">{{ \Carbon\Carbon::parse($ship->Tanggal ?? $ship->created_at)->format('d M Y') }}</p>
-                            <p class="font-black" style="color: var(--pc-maroon); font-size: 0.625rem; margin: 0.125rem 0 0 0;">PO-00{{ $ship->no_po_produk }}</p>
-                        </td>
-                        <td>
-                            <p class="font-black" style="color: var(--pc-dark); margin:0;">{{ $po->nama_pelanggan ?? '-' }}</p>
-                            <p class="font-bold" style="font-size: 0.625rem; color: #4b5563; margin: 0.125rem 0 0 0;">👤 Penerima: {{ $po->nama_penerima ?? '-' }}</p>
-                            <span class="badge" style="background-color:#f3f4f6; color:#4b5563; margin-top: 0.25rem;">
-                                {{ $po->tipe_jual ?? 'Eceran' }}
-                            </span>
-                        </td>
-                        <td>
-                            <div class="flex items-start gap-1">
-                                <span style="font-size: 0.75rem;">📍</span>
-                                <p style="font-size: 0.6875rem; color: #4b5563; line-height: 1.4; max-width: 16rem; margin:0;">
-                                    {{ $po->alamat_pelanggan ?? 'Alamat belum diisi' }}
-                                </p>
+                    <li class="row ship {{ $isDone ? 'ok' : 'mid' }}"
+                        data-s="{{ $isDone ? 'selesai' : 'jalan' }}"
+                        data-q="{{ strtolower($kodeShp . ' ' . $kodePo . ' ' . $kodeSj . ' ' . ($shp->poProduk->nama_pelanggan ?? '') . ' ' . ($sj->nama_penerima ?? $shp->poProduk->nama_penerima ?? '') . ' ' . ($sj->nama_kurir ?? '')) }}"
+                        @if($loop->index >= 6) data-more="1" hidden @endif>
+                        <div>
+                            <b>{{ $kodeShp }}</b>
+                            <small>{{ $shp->Tanggal ? \Carbon\Carbon::parse($shp->Tanggal)->format('d M Y') : '-' }} &middot; {{ $kodePo }}</small>
+                            <div class="tags">
+                                @if($kodeSj)
+                                    <span class="tag ok">{{ $kodeSj }}</span>
+                                @endif
                             </div>
-                        </td>
-                        <td>
-                            <p class="font-bold" style="color: #2563eb; margin:0;">SJ Ref: #{{ $sj->no_ref ?? '-' }}</p>
-                            <p style="font-size: 0.625rem; color: var(--text-muted); font-weight: 600; margin: 0.125rem 0 0 0;">🛵 Kurir: {{ $sj->nama_kurir ?? '-' }}</p>
-                        </td>
-                        <td class="text-center">
-                            @if($ship->status_pengiriman === 'SELESAI')
-                                <span class="badge badge-emerald">
-                                    ✅ SELESAI (DITERIMA)
-                                </span>
-                            @else
-                                <span class="badge badge-amber">
-                                    🚚 DIKIRIM
-                                </span>
-                            @endif
-                        </td>
-                        <td class="text-center no-print">
-                            @if($ship->status_pengiriman !== 'SELESAI')
-                                <button onclick="openShipmentStatusModal('{{ $ship->id_log_pengiriman }}')" class="btn btn-success">
-                                    ✅ Konfirmasi Selesai
-                                </button>
-                            @else
-                                <span class="font-bold" style="font-size: 0.6875rem; color: #059669;">✓ Sudah Diterima</span>
-                            @endif
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    @else
-        <div class="text-center" style="color: var(--text-muted); padding: 1.75rem; font-size: 0.8125rem;">
-            Belum ada aktivitas pengiriman.
-        </div>
-    @endif
-</div>
+                        </div>
 
-<!-- TABEL 2: RIWAYAT ARSIP SURAT JALAN -->
-<div class="table-container mt-6">
-    <div class="table-header-bar">
-        <span class="font-bold" style="color: var(--pc-dark);">📄 Arsip Surat Jalan Diterbitkan</span>
+                        <div>
+                            <b>{{ $shp->poProduk->nama_pelanggan ?? 'Pelanggan' }}</b>
+                            <small>
+                                Penerima: {{ $sj->nama_penerima ?? ($shp->poProduk->nama_penerima ?? '-') }}
+                                &middot; Kurir: {{ $sj->nama_kurir ?? '-' }}
+                            </small>
+                        </div>
+
+                        <div>
+                            <b>{{ $shp->poProduk ? number_format($shp->poProduk->jumlah_po) . ' pcs' : '-' }}</b>
+                            <small>{{ $shp->bukti_serah_terima ? 'Bukti: ' . $shp->bukti_serah_terima : 'Belum ada bukti serah terima' }}</small>
+                        </div>
+
+                        <span class="st">{{ $shp->status_pengiriman }}</span>
+
+                        <div class="act">
+                            @if(!$isDone)
+                                <button type="button" onclick="openUpdateShipmentModal({{ $shp->id_log_pengiriman }}, {{ \Illuminate\Support\Js::from($kodePo) }}, {{ \Illuminate\Support\Js::from($shp->status_pengiriman) }})">Update status</button>
+                            @elseif($shp->bukti_serah_terima && (str_contains($shp->bukti_serah_terima, 'bukti_kirim/') || str_contains($shp->bukti_serah_terima, '.')))
+                                <a href="{{ asset('storage/' . ltrim($shp->bukti_serah_terima, '/')) }}" target="_blank" rel="noopener">Lihat foto</a>
+                            @else
+                                <button type="button" onclick="openUpdateShipmentModal({{ $shp->id_log_pengiriman }}, {{ \Illuminate\Support\Js::from($kodePo) }}, {{ \Illuminate\Support\Js::from($shp->status_pengiriman) }})">Ubah bukti</button>
+                            @endif
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+
+            <div class="empty-filter" hidden>
+                <strong>Tidak ada pengiriman yang cocok</strong>
+                Ubah kata kunci pencarian atau pilih status lain.
+            </div>
+
+            <div class="foot">
+                <span id="cnt" data-cnt>Menampilkan {{ min(6, $shipments->count()) }} dari {{ $shipments->count() }} pengiriman</span>
+                @if($shipments->count() > 6)
+                    <button type="button" class="btn" data-expand="Lihat semua {{ $shipments->count() }} pengiriman" data-collapse="Tampilkan 6 pengiriman">Lihat semua {{ $shipments->count() }} pengiriman</button>
+                @endif
+            </div>
+        @else
+            <x-void-state
+                title="Belum ada pengiriman berjalan"
+                description="Setelah PO dipotong stoknya, terbitkan Surat Jalan untuk mulai melacak status pengantaran dan bukti serah terima."
+            >
+                <x-slot:action>
+                    <button type="button" class="btn" onclick="openDialog('modal-create-sj')">+ Terbitkan Surat Jalan</button>
+                </x-slot:action>
+            </x-void-state>
+        @endif
     </div>
 
-    @if($suratJalanList->isNotEmpty())
-        <div class="table-responsive-wrapper">
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>NO. SURAT JALAN</th>
-                        <th>TGL TERBIT</th>
-                        <th>PENERIMA</th>
-                        <th>KURIR / PENGIRIM</th>
-                        <th>CATATAN / KETERANGAN</th>
-                        <th class="text-center no-print">AKSI</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($suratJalanList as $sj)
-                    <tr>
-                        <td class="font-black" style="color: #2563eb;">
-                            #SJ-00{{ $sj->no_ref }}
-                        </td>
-                        <td class="font-bold" style="color: var(--pc-dark);">
-                            {{ \Carbon\Carbon::parse($sj->tgl_terbit)->format('d M Y') }}
-                        </td>
-                        <td class="font-bold" style="color: var(--pc-dark);">
-                            {{ $sj->nama_penerima }}
-                        </td>
-                        <td class="font-bold" style="color: #4b5563;">
-                            {{ $sj->nama_kurir ?? '-' }}
-                        </td>
-                        <td style="color: var(--text-muted); font-size: 0.6875rem;">
-                            {{ $sj->ket ?? '-' }}
-                        </td>
-                        <td class="text-center no-print">
-                            <button onclick="window.print()" class="btn btn-outline" style="padding: 0.25rem 0.5rem;">
-                                🖨️ Cetak
-                            </button>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    @else
-        <div class="text-center" style="color: var(--text-muted); padding: 1.75rem; font-size: 0.8125rem;">
-            Belum ada arsip Surat Jalan.
-        </div>
-    @endif
-</div>
-
-<!-- Modal Pop-up Konfirmasi Pengiriman Selesai -->
-<div id="modal-update-shipment" class="modal-overlay hidden">
-    <div class="modal-box">
-        <div class="flex justify-between items-center" style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
-            <h3 class="font-black text-sm" style="margin:0;">Konfirmasi Pengiriman Selesai & Bukti Terima</h3>
-            <button onclick="document.getElementById('modal-update-shipment').classList.add('hidden')" style="background:none; border:none; cursor:pointer; font-weight:bold;">✕</button>
-        </div>
-
-        <form id="form-shipment-status" method="POST" enctype="multipart/form-data" style="margin-top: 1rem;">
-            @csrf
-            <input type="hidden" name="status_pengiriman" value="SELESAI">
-
-            <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 0.625rem; padding: 0.625rem 0.75rem; font-size: 0.75rem; color: #065f46;">
-                ✓ Mengonfirmasi pesanan telah sampai di pelanggan akan otomatis memperbarui status PO menjadi <strong>SELESAI</strong>.
-            </div>
-
-            <div class="mt-3">
-                <label class="font-bold">Upload Foto Bukti Surat Jalan Tertanda / Tanda Terima</label>
-                <input type="file" name="bukti_serah_terima" accept="image/png, image/jpeg, image/jpg" class="form-input" style="background: #fff; padding: 0.375rem;">
-                <p style="font-size: 0.5625rem; color: var(--text-muted); margin-top: 0.125rem;">Format: JPG, PNG (Maks. 2MB)</p>
-            </div>
-
-            <div class="mt-2">
-                <label class="font-bold">Catatan Keterangan Penerima (Opsional)</label>
-                <input type="text" name="bukti_teks" placeholder="Misal: Diterima oleh Pak Budi (Security)" class="form-input">
-            </div>
-
-            <div class="flex justify-end gap-2 mt-4">
-                <button type="button" onclick="document.getElementById('modal-update-shipment').classList.add('hidden')" class="btn btn-outline">Batal</button>
-                <button type="submit" class="btn btn-success">Simpan Bukti & Selesaikan</button>
-            </div>
-        </form>
+    <div id="t-surat-jalan" hidden>
+        @if($suratJalanList->isNotEmpty())
+            <ul class="rows">
+                @foreach($suratJalanList as $sj)
+                    <li class="row sj ok">
+                        <div>
+                            <b>SJ-{{ str_pad($sj->no_ref, 4, '0', STR_PAD_LEFT) }}</b>
+                            <small>{{ $sj->tgl_terbit ? \Carbon\Carbon::parse($sj->tgl_terbit)->format('d M Y') : '-' }}</small>
+                        </div>
+                        <div>
+                            <b>{{ $sj->nama_penerima }}</b>
+                            <small>Kurir: {{ $sj->nama_kurir }}</small>
+                        </div>
+                        <div>
+                            <b>{{ $sj->poProduk->pluck('no_po_produk')->map(fn($n) => 'PO-' . str_pad($n, 4, '0', STR_PAD_LEFT))->implode(', ') ?: '-' }}</b>
+                            <small>{{ $sj->ket ?: 'Tanpa catatan tambahan' }}</small>
+                        </div>
+                        <div class="act">
+                            <span class="tag ok">Terbit</span>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+        @else
+            <x-void-state
+                title="Belum ada arsip Surat Jalan"
+                description="Dokumen Surat Jalan resmi akan tersimpan di sini begitu diterbitkan untuk pengiriman PO pelanggan."
+            >
+                <x-slot:action>
+                    <button type="button" class="btn" onclick="openDialog('modal-create-sj')">+ Terbitkan Surat Jalan</button>
+                </x-slot:action>
+            </x-void-state>
+        @endif
     </div>
-</div>
+</section>
 
-<script>
-function openShipmentStatusModal(id) {
-    document.getElementById('form-shipment-status').action = '/shipments/update-status/' + id;
-    document.getElementById('modal-update-shipment').classList.remove('hidden');
-}
-</script>
+<!-- Modal Terbitkan Surat Jalan -->
+<x-modal
+    id="modal-create-sj"
+    title="Terbitkan Surat Jalan baru"
+    subtitle="Pilih Purchase Order berstatus STOK_DIPOTONG yang siap dikirimkan."
+>
+    <form action="{{ route('shipments.surat-jalan.store') }}" method="POST">
+        @csrf
+        <div class="modal-body">
+            @if($poActive->isEmpty())
+                <div class="form-note is-warm">
+                    Belum ada PO berstatus <b>STOK_DIPOTONG</b>. Lakukan potong stok terlebih dahulu di halaman Purchase Order.
+                </div>
+            @endif
 
+            <div class="form-field">
+                <label class="form-label" for="sj-select-po">Pilih PO Siap Kirim *</label>
+                <select id="sj-select-po" name="no_po_produk" required class="form-input" onchange="prefillRecipientFromPo(this)">
+                    <option value="">-- Pilih Purchase Order --</option>
+                    @foreach($poActive as $po)
+                        <option value="{{ $po->no_po_produk }}" data-penerima="{{ $po->nama_penerima ?: $po->nama_pelanggan }}">
+                            PO-{{ str_pad($po->no_po_produk, 4, '0', STR_PAD_LEFT) }} &mdash; {{ $po->nama_pelanggan }} ({{ number_format($po->jumlah_po) }} pcs)
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="form-grid two">
+                <div class="form-field">
+                    <label class="form-label" for="sj-penerima">Nama Penerima *</label>
+                    <input id="sj-penerima" type="text" name="nama_penerima" required placeholder="Nama penerima di tujuan" class="form-input">
+                </div>
+                <div class="form-field">
+                    <label class="form-label" for="sj-tanggal">Tanggal Terbit *</label>
+                    <input id="sj-tanggal" type="date" name="tgl_terbit" value="{{ date('Y-m-d') }}" required class="form-input">
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label class="form-label" for="sj-kurir-input">Nama Kurir / Ekspedisi *</label>
+                <input id="sj-kurir-input" type="text" name="nama_kurir" required placeholder="Misal: Kurir Toko / Paxel / JNE" class="form-input">
+            </div>
+
+            <div class="form-field">
+                <label class="form-label" for="sj-catatan">Catatan Pengiriman (Opsional)</label>
+                <input id="sj-catatan" type="text" name="ket" placeholder="Misal: 3 dus besar, fragile" class="form-input">
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn outline" data-close>Batal</button>
+            <button type="submit" class="btn" @if($poActive->isEmpty()) disabled @endif>Terbitkan Surat Jalan</button>
+        </div>
+    </form>
+</x-modal>
+
+<!-- Modal Update Status & Bukti Serah Terima -->
+<x-modal
+    id="modal-update-shipment"
+    title="Update status &amp; bukti serah terima"
+    subtitle="Catat perubahan status atau unggah bukti pengiriman barang."
+    subtitleId="shp-modal-subtitle"
+>
+    <form id="form-update-shipment" method="POST" enctype="multipart/form-data">
+        @csrf
+        <div class="modal-body">
+            <div class="form-field">
+                <label class="form-label" for="shp-status-select">Status Pengiriman *</label>
+                <select id="shp-status-select" name="status_pengiriman" required class="form-input">
+                    <option value="DIPROSES">DIPROSES (Persiapan muat)</option>
+                    <option value="DIKIRIM">DIKIRIM (Sedang di perjalanan)</option>
+                    <option value="SELESAI">SELESAI (Diterima pelanggan)</option>
+                </select>
+            </div>
+
+            <div class="form-field">
+                <label class="form-label" for="shp-bukti-file">Foto Bukti Serah Terima (Opsional, maks 2MB)</label>
+                <input id="shp-bukti-file" type="file" name="bukti_serah_terima" accept="image/*" class="form-input">
+            </div>
+
+            <div class="form-field">
+                <label class="form-label" for="shp-bukti-teks">Catatan Penerima / No. Resi (Opsional)</label>
+                <input id="shp-bukti-teks" type="text" name="bukti_teks" placeholder="Misal: Diterima Ibu Sari pukul 14.20" class="form-input">
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn outline" data-close>Batal</button>
+            <button type="submit" class="btn">Simpan status</button>
+        </div>
+    </form>
+</x-modal>
 @endsection
+
+@push('scripts')
+<script>
+    function prefillRecipientFromPo(selectEl) {
+        var opt = selectEl.options[selectEl.selectedIndex];
+        var recipient = opt ? opt.getAttribute('data-penerima') : '';
+        if (recipient) {
+            document.getElementById('sj-penerima').value = recipient;
+        }
+    }
+
+    function openUpdateShipmentModal(id, kodePo, currentStatus) {
+        document.getElementById('form-update-shipment').action = '/shipments/update-status/' + id;
+        document.getElementById('shp-modal-subtitle').textContent = 'Memperbarui pengiriman untuk ' + kodePo;
+        var sel = document.getElementById('shp-status-select');
+        sel.value = currentStatus === 'DIPROSES' ? 'DIKIRIM' : (currentStatus === 'DIKIRIM' ? 'SELESAI' : currentStatus);
+        document.getElementById('shp-bukti-file').value = '';
+        document.getElementById('shp-bukti-teks').value = '';
+        openDialog('modal-update-shipment');
+    }
+</script>
+@endpush
