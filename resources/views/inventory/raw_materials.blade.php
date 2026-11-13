@@ -9,7 +9,7 @@
         <p class="text-xs mt-0.5" style="color: var(--text-muted); margin: 0.25rem 0 0 0;">Kelola stok bahan baku, catat nota pembelian multi-item dari supplier, dan rekapitulasi pengadaan.</p>
     </div>
     <div class="flex items-center gap-2 no-print">
-        <button onclick="document.getElementById('modal-purchase').classList.remove('hidden')" class="btn btn-primary">
+        <button onclick="openPurchaseModal()" class="btn btn-primary">
             🛒 + Catat Nota Pembelian Bahan
         </button>
 
@@ -90,16 +90,16 @@
                 <tbody>
                     @forelse($materials as $mat)
                     <tr>
-                        <td>
+                        <td style="vertical-align: middle;">
                             <p class="font-black" style="color: var(--pc-dark); margin:0;">{{ $mat->nama_bahan }}</p>
                             <p style="font-size: 0.625rem; color: var(--text-muted); margin: 0.125rem 0 0 0;">ID: BAHAN-00{{ $mat->id_bahan }}</p>
                         </td>
-                        <td class="uppercase font-bold" style="color: #4b5563;">{{ $mat->tipe }}</td>
-                        <td class="font-bold" style="color: #6b7280;">{{ $mat->ukuran }}</td>
-                        <td class="font-black text-sm" style="color: #059669;">
+                        <td class="uppercase font-bold" style="color: #4b5563; vertical-align: middle;">{{ $mat->tipe }}</td>
+                        <td class="font-bold" style="color: #6b7280; vertical-align: middle;">{{ $mat->ukuran }}</td>
+                        <td class="font-black text-sm" style="color: #059669; vertical-align: middle;">
                             {{ number_format($mat->qty_stok) }} {{ $mat->ukuran }}
                         </td>
-                        <td class="text-center">
+                        <td class="text-center" style="vertical-align: middle;">
                             @if($mat->qty_stok <= 5)
                                 <span class="badge" style="background-color: #fef2f2; color: #dc2626; border-color: #fecaca;">
                                     ⚠️ Stok Kritis
@@ -110,17 +110,17 @@
                                 </span>
                             @endif
                         </td>
-                        <td class="text-center no-print">
-                            <div class="flex items-center justify-center gap-1">
-                                <button onclick="editMaterial('{{ $mat->id_bahan }}', '{{ $mat->nama_bahan }}', '{{ $mat->tipe }}', '{{ $mat->ukuran }}', '{{ $mat->qty_stok }}')" 
-                                        title="Edit Master Bahan" class="btn btn-outline" style="padding: 0.25rem 0.5rem;">
+                        <td class="text-center no-print" style="vertical-align: middle;">
+                            <div class="flex items-center justify-center gap-2">
+                                <button onclick="editMaterial('{{ $mat->id_bahan }}', '{{ addslashes($mat->nama_bahan) }}', '{{ $mat->tipe }}', '{{ addslashes($mat->ukuran) }}', '{{ $mat->qty_stok }}')"
+                                        title="Edit Master Bahan" class="btn btn-outline" style="padding: 0.35rem 0.65rem;">
                                     ✏️ Edit
                                 </button>
 
-                                <form action="{{ route('raw-materials.material.destroy', $mat->id_bahan) }}" method="POST" onsubmit="return confirm('Hapus master bahan baku ini?')" style="display:inline;">
+                                <form action="{{ route('raw-materials.material.destroy', $mat->id_bahan) }}" method="POST" onsubmit="return confirm('Hapus master bahan baku ini?')" style="display:inline; margin:0;">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" title="Hapus Master Bahan" class="btn" style="background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 0.25rem 0.5rem;">
+                                    <button type="submit" title="Hapus Master Bahan" class="btn" style="background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 0.35rem 0.65rem;">
                                         🗑️ Hapus
                                     </button>
                                 </form>
@@ -138,7 +138,7 @@
     </div>
 </div>
 
-<!-- TAB 2: RIWAYAT TRANSAKSI PEMBELIAN (SEMBUNYI BY DEFAULT DENGAN CLASS HIDDEN) -->
+<!-- TAB 2: RIWAYAT TRANSAKSI PEMBELIAN -->
 <div id="tab-content-riwayat" class="hidden">
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 no-print mb-4" style="background: #fff; padding: 1rem; border-radius: 1rem; border: 1px solid var(--border-color);">
         <form action="{{ route('raw-materials.index') }}" method="GET" class="flex items-center gap-2">
@@ -161,12 +161,18 @@
             <span class="font-bold" style="color: var(--pc-dark);">📜 Riwayat Transaksi & Nota Pembelian Bahan</span>
         </div>
         <div class="table-responsive-wrapper">
-            <table class="custom-table">
+            <table class="custom-table" style="table-layout: fixed;">
+                <colgroup>
+                    <col style="width: 36%;">
+                    <col style="width: 22%;">
+                    <col style="width: 20%;">
+                    <col style="width: 22%;">
+                </colgroup>
                 <thead>
                     <tr>
-                        <th>SUPPLIER & TANGGAL</th>
+                        <th>KODE & SUPPLIER</th>
                         <th class="text-center">JUMLAH ITEM</th>
-                        <th>TOTAL BELANJA</th>
+                        <th class="text-right">TOTAL BELANJA</th>
                         <th class="text-center no-print">AKSI</th>
                     </tr>
                 </thead>
@@ -175,34 +181,37 @@
                         @foreach($groupedTransactions as $groupKey => $items)
                             @php
                                 $firstItem = $items->first();
-                                $totalHargaGroup = $items->sum('total_harga');
-                                $totalQtyGroup = $items->sum('total_qty');
+                                $txInfo = $txDetailMap[$groupKey];
                                 $txIds = $items->pluck('no_transaksi_beli')->toArray();
                             @endphp
                             <tr>
-                                <td>
-                                    <p class="font-black" style="color: var(--pc-dark); margin:0;">{{ $firstItem->nama_supplier }}</p>
-                                    <p style="font-size: 0.625rem; color: var(--text-muted); margin: 0.125rem 0 0 0;">{{ \Carbon\Carbon::parse($firstItem->tanggal)->format('d M Y H:i') }}</p>
+                                <td style="vertical-align: middle;">
+                                    <span class="font-black" style="color: #d97706; font-size: 0.6875rem;">{{ $txInfo['kode_transaksi'] }}</span>
+                                    <p class="font-black" style="color: var(--pc-dark); margin: 0.15rem 0 0 0; font-size: 0.8125rem;">{{ $firstItem->nama_supplier }}</p>
+                                    <p style="font-size: 0.625rem; color: var(--text-muted); margin: 0.15rem 0 0 0;">🕒 {{ $txInfo['waktu_transaksi'] }}</p>
                                 </td>
-                                <td class="text-center font-bold" style="color: #4b5563;">
-                                    {{ $items->count() }} Jenis Bahan ({{ number_format($totalQtyGroup) }} Qty)
+                                <td class="text-center font-bold" style="color: #4b5563; vertical-align: middle;">
+                                    <span class="badge" style="background-color: #f3f4f6; color: #374151; font-size: 0.6875rem; padding: 0.3rem 0.6rem;">
+                                        {{ $items->count() }} Jenis Bahan ({{ number_format($txInfo['total_qty']) }} Qty)
+                                    </span>
                                 </td>
-                                <td class="font-black text-sm" style="color: var(--pc-maroon);">
-                                    Rp {{ number_format($totalHargaGroup, 0, ',', '.') }}
+                                <td class="text-right font-black" style="color: var(--pc-maroon); font-size: 0.8125rem; vertical-align: middle;">
+                                    Rp {{ number_format($txInfo['total_harga'], 0, ',', '.') }}
                                 </td>
-                                <td class="text-center no-print">
+                                <td class="text-center no-print" style="vertical-align: middle;">
                                     <div class="flex items-center justify-center gap-2">
-                                        <button onclick="showDetailGroup('{{ $firstItem->nama_supplier }}', '{{ \Carbon\Carbon::parse($firstItem->tanggal)->format('d M Y H:i') }}', '{{ json_encode($items) }}')" 
-                                                class="btn btn-outline" style="padding: 0.25rem 0.5rem;">
+                                        <button type="button"
+                                                onclick="showDetailGroup({{ \Illuminate\Support\Js::from($groupKey) }})"
+                                                class="btn btn-outline" style="padding: 0.375rem 0.7rem;">
                                             👁️ Detail
                                         </button>
 
-                                        <form action="{{ route('raw-materials.purchase.destroy-group') }}" method="POST" onsubmit="return confirm('Hapus seluruh nota pembelian ini? Stok bahan akan disesuaikan.')" style="display:inline;">
+                                        <form action="{{ route('raw-materials.purchase.destroy-group') }}" method="POST" onsubmit="return confirm('Hapus seluruh nota pembelian ini? Stok bahan akan disesuaikan.')" style="display:inline; margin:0;">
                                             @csrf
                                             @foreach($txIds as $id)
                                                 <input type="hidden" name="ids[]" value="{{ $id }}">
                                             @endforeach
-                                            <button type="submit" title="Hapus Transaksi Nota Ini" class="btn" style="background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 0.25rem 0.5rem;">
+                                            <button type="submit" title="Hapus Transaksi Nota Ini" class="btn" style="background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 0.375rem 0.7rem;">
                                                 🗑️ Hapus
                                             </button>
                                         </form>
@@ -221,45 +230,133 @@
     </div>
 </div>
 
-<!-- Modal Pop-up Multi-Item Pembelian Bahan -->
+<!-- MODAL CATAT NOTA PEMBELIAN BAHAN (RAPIH & PROPORSIONAL) -->
 <div id="modal-purchase" class="modal-overlay hidden">
-    <div class="modal-box" style="max-width: 32rem;">
-        <div class="flex justify-between items-center" style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
-            <h3 class="font-black text-sm" style="margin:0;">Catat Nota Pembelian Bahan Baru (Multi-Item)</h3>
-            <button onclick="document.getElementById('modal-purchase').classList.add('hidden')" style="background:none; border:none; cursor:pointer; font-weight:bold;">✕</button>
+    <div class="modal-box" style="max-width: 56rem; padding: 1.5rem; max-height: 92vh; overflow-y: auto;">
+        <!-- Tombol Close Pojok Kanan Atas -->
+        <div class="flex justify-end" style="margin-bottom: 0.5rem;">
+            <button type="button"
+                    onclick="document.getElementById('modal-purchase').classList.add('hidden')"
+                    style="width: 1.75rem; height: 1.75rem; border-radius: 9999px; background-color: #e5e7eb; color: #4b5563; border: none; cursor: pointer; font-weight: 900; display: flex; align-items: center; justify-content: center;"
+                    title="Tutup">
+                ✕
+            </button>
         </div>
 
-        <form action="{{ route('raw-materials.purchase.store') }}" method="POST" style="margin-top: 1rem;">
+        <!-- Banner Judul Form -->
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 0.75rem 1rem; text-align: center;">
+            <h3 class="font-black" style="margin: 0; font-size: 1.05rem; color: var(--pc-dark);">
+                Catat Nota Pembelian Bahan
+            </h3>
+        </div>
+
+        <!-- Baris Tanggal Transaksi & Preview Kode Transaksi -->
+        <div class="flex flex-wrap justify-between items-center gap-2 mt-3 px-1">
+            <span class="font-black" style="font-size: 0.8125rem; color: var(--pc-dark);">
+                {{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}
+            </span>
+            <span class="font-black" style="font-size: 0.8125rem; color: #eab308; letter-spacing: 0.03em;">
+                {{ $nextTrsCode ?? 'TRS - 001 - ' . date('dmy') }}
+            </span>
+        </div>
+
+        <form action="{{ route('raw-materials.purchase.store') }}" method="POST" style="margin-top: 0.75rem;">
             @csrf
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="font-bold">Nama Supplier / Toko</label>
-                    <input type="text" name="nama_supplier" required placeholder="Misal: Agen Condet Utama" class="form-input">
+
+            <!-- Kotak Ringkasan Input Toko, Ongkir, Total Item & Total Harga Otomatis -->
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 0.875rem 1rem;">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="font-bold" style="font-size: 0.75rem; color: #374151;">Nama Toko / Supplier *</label>
+                        <input type="text" name="nama_supplier" required placeholder="Misal: Agen Murni Jaya" class="form-input" style="margin-top: 0.25rem; background: #fff;">
+                    </div>
+                    <div>
+                        <label class="font-bold" style="font-size: 0.75rem; color: #374151;">Ongkos Kirim (Opsional - Rp)</label>
+                        <input type="number" id="input-total-ongkir" name="total_ongkir" value="0" min="0" oninput="recalcPurchaseSummary()" class="form-input" style="margin-top: 0.25rem; background: #fff;">
+                    </div>
                 </div>
-                <div>
-                    <label class="font-bold">Total Ongkos Kirim (Rp)</label>
-                    <input type="number" name="total_ongkir" value="0" min="0" class="form-input">
+
+                <div class="flex flex-wrap justify-between items-center gap-2 mt-3 pt-2" style="border-top: 1px dashed #cbd5e1; font-size: 0.8125rem;">
+                    <div>
+                        <span style="color: #4b5563; font-weight: 600;">Total Item : </span>
+                        <span id="summary-total-item" class="font-black" style="color: var(--pc-dark);">1 Jenis Bahan</span>
+                    </div>
+                    <div>
+                        <span style="color: #4b5563; font-weight: 600;">Total Harga : </span>
+                        <span id="summary-total-harga" class="font-black" style="color: var(--pc-maroon); font-size: 0.9rem;">Rp. 0</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="mt-2" style="border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 0.75rem; background-color: rgba(249,250,251,0.5);">
-                <div class="flex justify-between items-center" style="margin-bottom: 0.5rem;">
-                    <span class="font-black" style="color: var(--pc-dark); font-size: 0.75rem;">Daftar Bahan Yang Dibeli:</span>
-                    <button type="button" onclick="addRow()" class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.5625rem;">+ Tambah Baris Bahan</button>
-                </div>
+            <!-- Header Aksi Tambah Item -->
+            <div class="flex justify-between items-center mt-4 mb-2">
+                <span class="font-black" style="color: var(--pc-dark); font-size: 0.75rem;">Daftar Rincian Item Pembelian:</span>
+                <button type="button" onclick="addRow()" class="btn btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.6875rem;">
+                    + Tambah Baris Item
+                </button>
+            </div>
 
-                <div id="row-container" class="flex flex-col gap-2">
-                    <div class="flex items-center gap-2 row-item">
-                        <select name="bahan_ids[]" required class="form-input font-bold" style="width: 40%; margin:0; background:#fff;">
-                            @foreach($materials as $m)
-                                <option value="{{ $m->id_bahan }}">{{ $m->nama_bahan }} ({{ $m->ukuran }})</option>
-                            @endforeach
-                        </select>
-                        <input type="number" name="qty[]" step="0.1" required placeholder="Qty" class="form-input" style="width: 25%; margin:0;">
-                        <input type="number" name="harga_total[]" required placeholder="Subtotal (Rp)" class="form-input" style="width: 30%; margin:0;">
-                        <button type="button" onclick="removeRow(this)" style="color: #ef4444; font-weight: bold; background: none; border: none; cursor: pointer;">✕</button>
-                    </div>
-                </div>
+            <!-- Tabel Input 6 Kolom Proporsional -->
+            <div class="table-responsive-wrapper" style="border: 1.5px solid #93c5fd; border-radius: 0.5rem; overflow-x: auto;">
+                <table class="custom-table table-compact" style="margin: 0; width: 100%; min-width: 44rem;">
+                    <colgroup>
+                        <col style="width: 2.5rem;">
+                        <col style="width: auto;">
+                        <col style="width: 4.75rem;">
+                        <col style="width: 5.5rem;">
+                        <col style="width: 7.75rem;">
+                        <col style="width: 8.25rem;">
+                        <col style="width: 2.25rem;">
+                    </colgroup>
+                    <thead>
+                        <tr style="background-color: #fef9c3;">
+                            <th class="text-center" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">No.</th>
+                            <th style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Item</th>
+                            <th class="text-center" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">QTY</th>
+                            <th class="text-center" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Satuan</th>
+                            <th class="text-right" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Harga Satuan</th>
+                            <th class="text-right" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Total harga</th>
+                            <th class="text-center" style="background-color: #fef9c3;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="purchase-tbody">
+                        @php
+                            $defaultSatuan = $materials->first()->ukuran ?? '-';
+                        @endphp
+                        <tr class="purchase-row">
+                            <td class="text-center font-bold row-number" style="color: #4b5563;">1</td>
+                            <td>
+                                <select name="bahan_ids[]" onchange="onBahanSelectChange(this)" required class="form-input font-bold" style="margin: 0; background: #fff; font-size: 0.75rem; padding: 0.4rem 0.5rem; width: 100%;">
+                                    @foreach($materials as $m)
+                                        <option value="{{ $m->id_bahan }}" data-satuan="{{ $m->ukuran }}">{{ $m->nama_bahan }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td>
+                                <input type="number" name="qty[]" step="any" min="0.1" required placeholder="0" oninput="recalcRowFromUnit(this)" class="form-input text-center font-bold input-qty" style="margin: 0; font-size: 0.75rem; padding: 0.4rem 0.35rem; width: 100%;">
+                            </td>
+                            <td class="text-center">
+                                <span class="badge satuan-label" style="background-color: #f3f4f6; color: #374151; font-weight: 800;">{{ $defaultSatuan }}</span>
+                            </td>
+                            <td>
+                                <input type="number" name="harga_satuan[]" min="0" required placeholder="Rp 0" oninput="recalcRowFromUnit(this)" class="form-input text-right font-semibold input-harga-satuan" style="margin: 0; font-size: 0.75rem; padding: 0.4rem 0.5rem; width: 100%;">
+                            </td>
+                            <td>
+                                <input type="number" name="harga_total[]" min="0" required placeholder="Rp 0" oninput="recalcRowFromTotal(this)" class="form-input text-right font-black input-harga-total" style="margin: 0; font-size: 0.75rem; padding: 0.4rem 0.5rem; width: 100%; color: var(--pc-dark);">
+                            </td>
+                            <td class="text-center">
+                                <button type="button" onclick="removeRow(this)" style="color: #ef4444; font-weight: 900; background: none; border: none; cursor: pointer; padding: 0.25rem;" title="Hapus Baris">✕</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr style="background-color: #fefce8; border-top: 1px solid #e2e8f0;">
+                            <td colspan="5" class="text-right font-black" style="color: var(--pc-dark); font-size: 0.8125rem; text-align: right;">Grand Total Nota</td>
+                            <td id="tfoot-grand-total" class="text-right font-black" style="color: var(--pc-maroon); font-size: 0.875rem; text-align: right; white-space: nowrap;">Rp. 0</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
 
             <div class="flex justify-end gap-2 mt-4">
@@ -270,31 +367,79 @@
     </div>
 </div>
 
-<!-- Modal Detail Pembelian -->
+<!-- MODAL DETAIL TRANSAKSI PEMBELIAN BAHAN (SESUAI RANCANGAN NOTA) -->
 <div id="modal-detail" class="modal-overlay hidden">
-    <div class="modal-box">
-        <div class="flex justify-between items-center" style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
-            <h3 class="font-black text-sm" id="detail-supplier-title" style="margin:0;">Detail Transaksi Pembelian</h3>
-            <button onclick="document.getElementById('modal-detail').classList.add('hidden')" style="background:none; border:none; cursor:pointer; font-weight:bold;">✕</button>
+    <div class="modal-box" style="max-width: 48rem; padding: 1.5rem; position: relative; max-height: 90vh; overflow-y: auto;">
+        <div class="flex justify-end no-print" style="margin-bottom: 0.5rem;">
+            <button type="button"
+                    onclick="document.getElementById('modal-detail').classList.add('hidden')"
+                    style="width: 1.75rem; height: 1.75rem; border-radius: 9999px; background-color: #e5e7eb; color: #4b5563; border: none; cursor: pointer; font-weight: 900; display: flex; align-items: center; justify-content: center;"
+                    title="Tutup">
+                ✕
+            </button>
         </div>
 
-        <div class="table-responsive-wrapper mt-2">
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>NAMA BAHAN</th>
-                        <th class="text-center">QTY</th>
-                        <th class="text-right">TOTAL HARGA</th>
-                    </tr>
-                </thead>
-                <tbody id="detail-tbody">
-                    <!-- Injected via Javascript -->
-                </tbody>
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 0.75rem 1rem; text-align: center;">
+            <h3 class="font-black" style="margin: 0; font-size: 1.05rem; color: var(--pc-dark); letter-spacing: 0.01em;">
+                Transaksi Pembelian Bahan
+            </h3>
+        </div>
+
+        <div class="flex flex-wrap justify-between items-center gap-2 mt-4 px-1">
+            <span id="detail-waktu-transaksi" class="font-black" style="font-size: 0.875rem; color: var(--pc-dark);">
+                -
+            </span>
+            <span id="detail-kode-transaksi" class="font-black" style="font-size: 0.875rem; color: #eab308; letter-spacing: 0.03em;">
+                TRS - 000 - 000000
+            </span>
+        </div>
+
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 0.875rem 1.125rem; margin-top: 0.75rem; font-size: 0.8125rem;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="width: 7.5rem; padding: 0.25rem 0; color: #4b5563; font-weight: 600;">Nama Toko</td>
+                    <td style="width: 1rem; padding: 0.25rem 0; color: #4b5563; font-weight: 700;">:</td>
+                    <td id="detail-nama-toko" class="font-black" style="padding: 0.25rem 0; color: var(--pc-dark);">-</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.25rem 0; color: #4b5563; font-weight: 600;">Total Item</td>
+                    <td style="padding: 0.25rem 0; color: #4b5563; font-weight: 700;">:</td>
+                    <td id="detail-total-item" class="font-bold" style="padding: 0.25rem 0; color: var(--pc-dark);">0</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.25rem 0; color: #4b5563; font-weight: 600;">Total Harga</td>
+                    <td style="padding: 0.25rem 0; color: #4b5563; font-weight: 700;">:</td>
+                    <td id="detail-total-harga" class="font-black" style="padding: 0.25rem 0; color: var(--pc-maroon); font-size: 0.9rem;">Rp. 0</td>
+                </tr>
             </table>
         </div>
 
-        <div class="flex justify-end mt-4">
-            <button type="button" onclick="document.getElementById('modal-detail').classList.add('hidden')" class="btn btn-outline">Tutup</button>
+        <div class="table-responsive-wrapper mt-4" style="border: 1.5px solid #93c5fd; border-radius: 0.5rem; overflow: hidden;">
+            <table class="custom-table table-compact" style="margin: 0;">
+                <thead>
+                    <tr style="background-color: #fef9c3;">
+                        <th class="text-center" style="width: 3rem; color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">No.</th>
+                        <th style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Item</th>
+                        <th class="text-center" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">QTY</th>
+                        <th class="text-center" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Satuan</th>
+                        <th class="text-right" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Harga Satuan</th>
+                        <th class="text-right" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Total harga</th>
+                    </tr>
+                </thead>
+                <tbody id="detail-tbody">
+                </tbody>
+                <tfoot id="detail-tfoot" style="background-color: #f8fafc; border-top: 1px solid #e2e8f0;">
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="flex justify-end items-center gap-2 mt-4 no-print">
+            <button type="button" onclick="window.print()" class="btn btn-outline">
+                🖨️ Cetak Nota
+            </button>
+            <button type="button" onclick="document.getElementById('modal-detail').classList.add('hidden')" class="btn btn-primary">
+                Tutup
+            </button>
         </div>
     </div>
 </div>
@@ -385,6 +530,12 @@
 </div>
 
 <script>
+const txDetailDataMap = @json($txDetailMap ?? []);
+
+function formatRupiahNota(angka) {
+    return 'Rp. ' + new Intl.NumberFormat('id-ID').format(Math.round(angka || 0));
+}
+
 function switchTab(tab) {
     const btnStok = document.getElementById('tab-btn-stok');
     const btnRiwayat = document.getElementById('tab-btn-riwayat');
@@ -394,50 +545,145 @@ function switchTab(tab) {
     if (tab === 'stok') {
         contentStok.classList.remove('hidden');
         contentRiwayat.classList.add('hidden');
-        
         btnStok.classList.add('active');
         btnRiwayat.classList.remove('active');
     } else {
         contentStok.classList.add('hidden');
         contentRiwayat.classList.remove('hidden');
-
         btnRiwayat.classList.add('active');
         btnStok.classList.remove('active');
     }
 }
 
-function addRow() {
-    const container = document.getElementById('row-container');
-    const firstRow = container.children[0];
-    const newRow = firstRow.cloneNode(true);
-    newRow.querySelector('input[name="qty[]"]').value = '';
-    newRow.querySelector('input[name="harga_total[]"]').value = '';
-    container.appendChild(newRow);
+function openPurchaseModal() {
+    recalcPurchaseSummary();
+    document.getElementById('modal-purchase').classList.remove('hidden');
 }
 
-function removeRow(btn) {
-    const container = document.getElementById('row-container');
-    if (container.children.length > 1) {
-        btn.parentElement.remove();
+function onBahanSelectChange(selectEl) {
+    const row = selectEl.closest('tr');
+    const selectedOption = selectEl.options[selectEl.selectedIndex];
+    const satuan = selectedOption ? (selectedOption.getAttribute('data-satuan') || '-') : '-';
+    const satuanLabel = row.querySelector('.satuan-label');
+    if (satuanLabel) {
+        satuanLabel.innerText = satuan;
     }
 }
 
-function showDetailGroup(supplier, tgl, itemsJson) {
-    document.getElementById('detail-supplier-title').innerText = 'Nota ' + supplier + ' (' + tgl + ')';
-    const items = JSON.parse(itemsJson);
-    const tbody = document.getElementById('detail-tbody');
-    tbody.innerHTML = '';
+function recalcRowFromUnit(inputEl) {
+    const row = inputEl.closest('tr');
+    const qty = parseFloat(row.querySelector('.input-qty').value) || 0;
+    const hargaSatuan = parseFloat(row.querySelector('.input-harga-satuan').value) || 0;
+    const totalInput = row.querySelector('.input-harga-total');
 
-    items.forEach(i => {
-        const namaBahan = i.bahan_produksi ? i.bahan_produksi.nama_bahan : 'Bahan';
+    totalInput.value = qty > 0 && hargaSatuan > 0 ? Math.round(qty * hargaSatuan) : '';
+    recalcPurchaseSummary();
+}
+
+function recalcRowFromTotal(inputEl) {
+    const row = inputEl.closest('tr');
+    const qty = parseFloat(row.querySelector('.input-qty').value) || 0;
+    const totalHarga = parseFloat(inputEl.value) || 0;
+    const satuanInput = row.querySelector('.input-harga-satuan');
+
+    if (qty > 0 && totalHarga > 0) {
+        satuanInput.value = Math.round(totalHarga / qty);
+    }
+    recalcPurchaseSummary();
+}
+
+function recalcPurchaseSummary() {
+    const rows = document.querySelectorAll('#purchase-tbody tr.purchase-row');
+    let subtotalSemua = 0;
+
+    rows.forEach((row, index) => {
+        const numCell = row.querySelector('.row-number');
+        if (numCell) numCell.innerText = index + 1;
+
+        const totalVal = parseFloat(row.querySelector('.input-harga-total').value) || 0;
+        subtotalSemua += totalVal;
+    });
+
+    const ongkir = parseFloat(document.getElementById('input-total-ongkir')?.value) || 0;
+    const grandTotal = subtotalSemua + ongkir;
+
+    document.getElementById('summary-total-item').innerText = rows.length + ' Jenis Bahan';
+    document.getElementById('summary-total-harga').innerText = formatRupiahNota(grandTotal);
+    document.getElementById('tfoot-grand-total').innerText = formatRupiahNota(grandTotal);
+}
+
+function addRow() {
+    const tbody = document.getElementById('purchase-tbody');
+    const firstRow = tbody.querySelector('tr.purchase-row');
+    const newRow = firstRow.cloneNode(true);
+
+    const selectEl = newRow.querySelector('select[name="bahan_ids[]"]');
+    selectEl.selectedIndex = 0;
+    onBahanSelectChange(selectEl);
+
+    newRow.querySelector('.input-qty').value = '';
+    newRow.querySelector('.input-harga-satuan').value = '';
+    newRow.querySelector('.input-harga-total').value = '';
+
+    tbody.appendChild(newRow);
+    recalcPurchaseSummary();
+}
+
+function removeRow(btn) {
+    const tbody = document.getElementById('purchase-tbody');
+    if (tbody.querySelectorAll('tr.purchase-row').length > 1) {
+        btn.closest('tr').remove();
+        recalcPurchaseSummary();
+    }
+}
+
+function showDetailGroup(groupKey) {
+    const tx = txDetailDataMap[groupKey];
+    if (!tx) return;
+
+    document.getElementById('detail-waktu-transaksi').innerText = tx.waktu_transaksi;
+    document.getElementById('detail-kode-transaksi').innerText = tx.kode_transaksi;
+    document.getElementById('detail-nama-toko').innerText = tx.nama_toko;
+    document.getElementById('detail-total-item').innerText = tx.total_item + ' Jenis Bahan (' + new Intl.NumberFormat('id-ID').format(tx.total_qty) + ' Total Qty)';
+    document.getElementById('detail-total-harga').innerText = formatRupiahNota(tx.total_harga);
+
+    const tbody = document.getElementById('detail-tbody');
+    const tfoot = document.getElementById('detail-tfoot');
+    tbody.innerHTML = '';
+    tfoot.innerHTML = '';
+
+    tx.items.forEach((item, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td class="font-bold" style="color: var(--pc-dark);">${namaBahan}</td>
-            <td class="text-center font-bold">${i.total_qty}</td>
-            <td class="text-right font-black" style="color: var(--pc-maroon);">Rp ${new Intl.NumberFormat('id-ID').format(i.total_harga)}</td>
+            <td class="text-center font-bold" style="color: #4b5563;">${index + 1}</td>
+            <td class="font-bold" style="color: var(--pc-dark);">${item.nama_bahan}</td>
+            <td class="text-center font-bold" style="color: var(--pc-dark);">${new Intl.NumberFormat('id-ID').format(item.qty)}</td>
+            <td class="text-center font-semibold" style="color: #4b5563;">${item.satuan}</td>
+            <td class="text-right font-semibold" style="color: #374151; white-space: nowrap;">${formatRupiahNota(item.harga_satuan)}</td>
+            <td class="text-right font-black" style="color: var(--pc-dark); white-space: nowrap;">${formatRupiahNota(item.total_harga)}</td>
         `;
         tbody.appendChild(tr);
     });
+
+    if (tx.total_ongkir > 0) {
+        tfoot.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-right font-bold" style="color: #4b5563; font-size: 0.75rem; text-align: right;">Ongkos Kirim</td>
+                <td class="text-right font-bold" style="color: #4b5563; font-size: 0.75rem; text-align: right; white-space: nowrap;">${formatRupiahNota(tx.total_ongkir)}</td>
+            </tr>
+            <tr style="background-color: #fefce8;">
+                <td colspan="5" class="text-right font-black" style="color: var(--pc-dark); font-size: 0.8125rem; text-align: right;">Grand Total Pembelian</td>
+                <td class="text-right font-black" style="color: var(--pc-maroon); font-size: 0.875rem; text-align: right; white-space: nowrap;">${formatRupiahNota(tx.total_harga)}</td>
+            </tr>
+        `;
+    } else {
+        tfoot.innerHTML = `
+            <tr style="background-color: #fefce8;">
+                <td colspan="5" class="text-right font-black" style="color: var(--pc-dark); font-size: 0.8125rem; text-align: right;">Grand Total Pembelian</td>
+                <td class="text-right font-black" style="color: var(--pc-maroon); font-size: 0.875rem; text-align: right; white-space: nowrap;">${formatRupiahNota(tx.total_harga)}</td>
+            </tr>
+        `;
+    }
 
     document.getElementById('modal-detail').classList.remove('hidden');
 }

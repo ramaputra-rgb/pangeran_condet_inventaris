@@ -11,6 +11,7 @@ use App\Http\Controllers\WorkOrderController;
 use App\Http\Controllers\LogProduksiController;
 use App\Http\Controllers\PoProdukController;
 use App\Http\Controllers\ShipmentController;
+use App\Http\Controllers\ReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,6 +37,10 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 */
 Route::middleware('auth')->group(function () {
 
+// modul reports
+Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+Route::post('/reports/preview', [ReportController::class, 'previewOrPrint'])->name('reports.preview');
+
 // Modul manajemen stok produksi
 Route::get('/raw-materials', [RawMaterialsController::class, 'index'])->name('raw-materials.index');
 Route::post('/raw-materials/material/store', [RawMaterialsController::class, 'storeMaterial'])->name('raw-materials.material.store');
@@ -54,18 +59,21 @@ Route::post('/raw-materials/purchase/destroy-group', [RawMaterialsController::cl
     Route::post('/shipments/surat-jalan/store', [ShipmentController::class, 'storeSuratJalan'])->name('shipments.surat-jalan.store');
     Route::post('/shipments/update-status/{id}', [ShipmentController::class, 'updateShipmentStatus'])->name('shipments.update-status');
 
-// Modul PO Produk
-Route::get('/po-produk', [PoProdukController::class, 'index'])->name('po-produk.index');
-Route::post('/po-produk/store', [PoProdukController::class, 'store'])->name('po-produk.store');
-Route::post('/po-produk/potong-stok/{id}', [PoProdukController::class, 'potongStokReady'])->name('po-produk.potong-stok');
-Route::get('/po-produk/buat-batch/{id}', [PoProdukController::class, 'buatProdukBatch'])->name('po-produk.buat-batch');
-Route::post('/po-produk/update-status/{id}', [PoProdukController::class, 'updateStatus'])->name('po-produk.update-status');
+    // Modul PO Produk
+    Route::get('/po-produk', [PoProdukController::class, 'index'])->name('po-produk.index');
+    Route::post('/po-produk/store', [PoProdukController::class, 'store'])->name('po-produk.store');
+    Route::post('/po-produk/potong-stok/{id}', [PoProdukController::class, 'potongStokReady'])->name('po-produk.potong-stok');
+    Route::get('/po-produk/buat-batch/{id}', [PoProdukController::class, 'buatProdukBatch'])->name('po-produk.buat-batch');
+    Route::post('/po-produk/kapasitas', [PoProdukController::class, 'updateKapasitas'])->name('po-produk.kapasitas');
+    Route::delete('/po-produk/destroy/{id}', [PoProdukController::class, 'destroy'])->name('po-produk.destroy');
 
-// Modul Log Produksi
-Route::get('/log-produksi', [LogProduksiController::class, 'index'])->name('log-produksi.index');
-Route::post('/log-produksi/store', [LogProduksiController::class, 'store'])->name('log-produksi.store');
-Route::post('/log-produksi/approve/{id}', [LogProduksiController::class, 'approveBatch'])->name('log-produksi.approve');
-
+    // Modul Log Produksi
+    Route::get('/log-produksi', [LogProduksiController::class, 'index'])->name('log-produksi.index');
+    Route::post('/log-produksi/store', [LogProduksiController::class, 'store'])->name('log-produksi.store');
+    Route::post('/log-produksi/complete-qc/{id}', [LogProduksiController::class, 'completeQc'])->name('log-produksi.complete-qc');
+    Route::post('/log-produksi/approve/{id}', [LogProduksiController::class, 'approveBatch'])->name('log-produksi.approve');
+    Route::delete('/log-produksi/destroy/{id}', [LogProduksiController::class, 'destroy'])->name('log-produksi.destroy');
+   
     // Modul Work Orders
     Route::get('/work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index');
     Route::post('/work-orders/store', [WorkOrderController::class, 'store'])->name('work-orders.store');
@@ -77,7 +85,9 @@ Route::post('/log-produksi/approve/{id}', [LogProduksiController::class, 'approv
     // Modul Finished Goods (Barang Jadi)
     Route::get('/finished-goods', [FinishedGoodsController::class, 'index'])->name('finished-goods.index');
     Route::post('/finished-goods/store', [FinishedGoodsController::class, 'storeProduct'])->name('finished-goods.store');
+    Route::put('/finished-goods/update/{id}', [FinishedGoodsController::class, 'updateProduct'])->name('finished-goods.update');
     Route::post('/finished-goods/update-stock/{id}', [FinishedGoodsController::class, 'updateStock'])->name('finished-goods.update-stock');
+    Route::delete('/finished-goods/destroy/{id}', [FinishedGoodsController::class, 'destroyProduct'])->name('finished-goods.destroy');
 
     // SPK & Serah Terima Hasil Produksi Dapur
     Route::post('/production-batch', [ProductionBatchController::class, 'store'])->name('production-batch.store');

@@ -20,7 +20,6 @@ class ProdukJadi extends Model
         'stok',
     ];
 
-    // TAMBAHKAN INI AGAR ACCESSOR TERBACA OTOMATIS
     protected $appends = [
         'stok_terkunci_po',
         'stok_atp',
@@ -49,6 +48,6 @@ class ProdukJadi extends Model
     // Accessor: Stok Siap Jual / Available to Promise (ATP)
     public function getStokAtpAttribute()
     {
-        return max(0, (int) $this->stok - $this->stok_terkunci_po);
+        return max(0, (int) $this->stok - (int) $this->stok_terkunci_po);
     }
 }

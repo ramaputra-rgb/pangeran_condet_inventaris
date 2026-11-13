@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\BahanProduksi;
 use App\Models\TransaksiBeliBahan;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class RawMaterialsController extends Controller
@@ -20,6 +21,10 @@ class RawMaterialsController extends Controller
                                     ->whereYear('created_at', now()->year)
                                     ->sum('total_harga');
 
+        // Preview kode transaksi berikutnya untuk form input nota
+        $nextNo = (TransaksiBeliBahan::max('no_transaksi_beli') ?? 0) + 1;
+        $nextTrsCode = 'TRS - ' . str_pad($nextNo, 3, '0', STR_PAD_LEFT) . ' - ' . now()->format('dmy');
+
         // 2. Query Riwayat Transaksi Beli Bahan
         $queryTx = TransaksiBeliBahan::with('bahanProduksi')->latest();
 
@@ -32,15 +37,62 @@ class RawMaterialsController extends Controller
         }
 
         $rawTransactions = $queryTx->get();
-        
-        // Kelompokkan berdasarkan supplier & tanggal dibuat (created_at)
-        $groupedTransactions = $rawTransactions->groupBy(function($item) {
-            return $item->nama_supplier . '_' . \Carbon\Carbon::parse($item->created_at)->format('Y-m-d_H:i');
+
+        // Kelompokkan berdasarkan supplier & waktu transaksi (created_at)
+        $groupedTransactions = $rawTransactions->groupBy(function ($item) {
+            $waktu = $item->created_at ?? $item->tanggal ?? now();
+            return $item->nama_supplier . '_' . Carbon::parse($waktu)->format('Y-m-d_H:i');
         });
 
+        // Siapkan data detail transaksi terstruktur untuk modal pop-up
+        $txDetailMap = [];
+        foreach ($groupedTransactions as $groupKey => $items) {
+            $firstItem = $items->first();
+            $dt = Carbon::parse($firstItem->created_at ?? $firstItem->tanggal ?? now());
+            $kodeTrs = 'TRS - ' . str_pad($firstItem->no_transaksi_beli, 3, '0', STR_PAD_LEFT) . ' - ' . $dt->format('dmy');
+
+            $detailRows = [];
+            $subtotalBarang = 0;
+            $totalOngkirGroup = 0;
+
+            foreach ($items as $item) {
+                $qty = (float) $item->total_qty;
+                $ongkirItem = (float) ($item->total_ongkir ?? 0);
+                $hargaItemMurni = max(0, (float) $item->total_harga - $ongkirItem);
+                $hargaSatuan = $qty > 0 ? round($hargaItemMurni / $qty) : 0;
+
+                $subtotalBarang += $hargaItemMurni;
+                $totalOngkirGroup += $ongkirItem;
+
+                $detailRows[] = [
+                    'nama_bahan'   => $item->bahanProduksi->nama_bahan ?? ('Bahan #' . $item->id_bahan),
+                    'tipe'         => $item->bahanProduksi->tipe ?? '-',
+                    'qty'          => $qty,
+                    'satuan'       => $item->bahanProduksi->ukuran ?? 'Unit',
+                    'harga_satuan' => $hargaSatuan,
+                    'total_harga'  => $hargaItemMurni,
+                ];
+            }
+
+            $txDetailMap[$groupKey] = [
+                'kode_transaksi'  => $kodeTrs,
+                'waktu_transaksi' => $dt->format('d/m/Y H:i:s'),
+                'waktu_ringkas'   => $dt->format('d M Y H:i'),
+                'nama_toko'       => $firstItem->nama_supplier,
+                'total_item'      => $items->count(),
+                'total_qty'       => $items->sum('total_qty'),
+                'subtotal_barang' => round($subtotalBarang),
+                'total_ongkir'    => round($totalOngkirGroup),
+                'total_harga'     => round($items->sum('total_harga')),
+                'items'           => $detailRows,
+            ];
+        }
+
         return view('inventory.raw_materials', compact(
-            'materials', 
+            'materials',
             'groupedTransactions',
+            'txDetailMap',
+            'nextTrsCode',
             'totalBahanCount',
             'stokKritisCount',
             'totalPengadaanBulanIni'
@@ -48,8 +100,7 @@ class RawMaterialsController extends Controller
     }
 
     /**
-     * 1. INPUT MASTER BAHAN PRODUKSI BARU (Disesuaikan dengan Activity Diagram Hal. 4)
-     * Pengecekan Duplikasi berdasarkan ['nama_bahan', 'ukuran']
+     * 1. INPUT MASTER BAHAN PRODUKSI BARU
      */
     public function storeMaterial(Request $request)
     {
@@ -60,7 +111,6 @@ class RawMaterialsController extends Controller
             'qty_stok'   => 'required|numeric|min:0',
         ]);
 
-        // Cek duplikasi berdasarkan Nama & Satuan Ukuran (Activity Diagram Hal. 4)
         $existing = BahanProduksi::where('nama_bahan', trim($request->nama_bahan))
             ->where('ukuran', trim($request->ukuran))
             ->first();
@@ -94,7 +144,6 @@ class RawMaterialsController extends Controller
 
         $bahan = BahanProduksi::findOrFail($id);
 
-        // Cek jika nama & ukuran diubah ke item yang sudah ada milik ID lain
         $existing = BahanProduksi::where('nama_bahan', trim($request->nama_bahan))
             ->where('ukuran', trim($request->ukuran))
             ->where('id_bahan', '!=', $id)
@@ -128,20 +177,19 @@ class RawMaterialsController extends Controller
     }
 
     /**
-     * 2. CATAT NOTA PEMBELIAN BAHAN (Disesuaikan dengan Activity Diagram Hal. 2)
-     * Verifikasi Pengecekan Nota Duplikat & Penambahan Stok Otomatis
+     * 2. CATAT NOTA PEMBELIAN BAHAN
      */
     public function storePurchase(Request $request)
     {
         $request->validate([
-            'nama_supplier' => 'required|string|max:255',
-            'total_ongkir'  => 'nullable|numeric|min:0',
-            'bahan_ids'     => 'required|array|min:1',
-            'qty'           => 'required|array|min:1',
-            'harga_total'   => 'required|array|min:1',
+            'nama_supplier'  => 'required|string|max:255',
+            'total_ongkir'   => 'nullable|numeric|min:0',
+            'bahan_ids'      => 'required|array|min:1',
+            'qty'            => 'required|array|min:1',
+            'harga_satuan'   => 'nullable|array',
+            'harga_total'    => 'required|array|min:1',
         ]);
 
-        // Cek duplikasi nota berdasarkan supplier & waktu transaksi dalam kurun 1 menit terakhir (Activity Diagram Hal. 2)
         $recentDuplicate = TransaksiBeliBahan::where('nama_supplier', trim($request->nama_supplier))
             ->where('created_at', '>=', now()->subMinute())
             ->first();
@@ -151,23 +199,27 @@ class RawMaterialsController extends Controller
         }
 
         DB::transaction(function () use ($request) {
-            $ongkirPerItem = ($request->total_ongkir ?? 0) / count($request->bahan_ids);
+            $jumlahBaris = count($request->bahan_ids);
+            $ongkirPerItem = $jumlahBaris > 0 ? (($request->total_ongkir ?? 0) / $jumlahBaris) : 0;
 
             foreach ($request->bahan_ids as $idx => $idBahan) {
-                $q = $request->qty[$idx] ?? 0;
-                $h = $request->harga_total[$idx] ?? 0;
+                $q = (float) ($request->qty[$idx] ?? 0);
+                $hargaSatuan = (float) ($request->harga_satuan[$idx] ?? 0);
+                $h = isset($request->harga_total[$idx]) && $request->harga_total[$idx] !== ''
+                    ? (float) $request->harga_total[$idx]
+                    : ($q * $hargaSatuan);
 
-                // Simpan Nota Pembelian
-                TransaksiBeliBahan::create([
-                    'nama_supplier' => trim($request->nama_supplier),
-                    'total_qty'     => $q,
-                    'total_harga'   => $h + $ongkirPerItem,
-                    'total_ongkir'  => $ongkirPerItem,
-                    'id_bahan'      => $idBahan,
-                ]);
+                if ($idBahan && $q > 0) {
+                    TransaksiBeliBahan::create([
+                        'nama_supplier' => trim($request->nama_supplier),
+                        'total_qty'     => $q,
+                        'total_harga'   => $h + $ongkirPerItem,
+                        'total_ongkir'  => $ongkirPerItem,
+                        'id_bahan'      => $idBahan,
+                    ]);
 
-                // Menambah Stok Bahan Produksi (Activity Diagram Hal. 2)
-                BahanProduksi::where('id_bahan', $idBahan)->increment('qty_stok', $q);
+                    BahanProduksi::where('id_bahan', $idBahan)->increment('qty_stok', $q);
+                }
             }
         });
 
@@ -176,8 +228,7 @@ class RawMaterialsController extends Controller
     }
 
     /**
-     * 3. HAPUS / PENYESUAIAN NOTA PEMBELIAN (Disesuaikan dengan Activity Diagram Hal. 3 [Axi A])
-     * Mengurangi/Revert Stok Bahan Baku saat Transaksi Dibatalkan
+     * 3. HAPUS / PENYESUAIAN NOTA PEMBELIAN
      */
     public function destroyPurchaseGroup(Request $request)
     {
@@ -189,11 +240,9 @@ class RawMaterialsController extends Controller
             foreach ($request->ids as $id) {
                 $tx = TransaksiBeliBahan::find($id);
                 if ($tx) {
-                    // Revert/Mengurangi Stok sesuai transaksi yang dihapus
                     if ($tx->id_bahan && $tx->total_qty > 0) {
                         $bahan = BahanProduksi::find($tx->id_bahan);
                         if ($bahan) {
-                            // Mencegah stok menjadi minus jika sudah dipakai
                             $newStok = max(0, $bahan->qty_stok - $tx->total_qty);
                             $bahan->update(['qty_stok' => $newStok]);
                         }
