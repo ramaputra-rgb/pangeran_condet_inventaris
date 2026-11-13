@@ -1,322 +1,211 @@
 @extends('layouts.app')
 
+@section('title', 'Pangeran Condet, Stok bahan')
+
 @section('content')
+@php
+    $sortedMaterials = $materials->sortBy('qty_stok')->values();
+@endphp
 
-<!-- Header Modul & Tombol Aksi -->
-<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<section class="hero sm" aria-labelledby="j-stok">
     <div>
-        <h2 class="text-xl font-black" style="color: var(--pc-dark); margin:0;">Pengadaan & Stok Bahan Produksi</h2>
-        <p class="text-xs mt-0.5" style="color: var(--text-muted); margin: 0.25rem 0 0 0;">Kelola stok bahan baku, catat nota pembelian multi-item dari supplier, dan rekapitulasi pengadaan.</p>
-    </div>
-    <div class="flex items-center gap-2 no-print">
-        <button onclick="openPurchaseModal()" class="btn btn-primary">
-            🛒 + Catat Nota Pembelian Bahan
-        </button>
-
-        <button onclick="document.getElementById('modal-material').classList.remove('hidden')" class="btn btn-outline">
-            + Master Bahan Baru
-        </button>
-    </div>
-</div>
-
-<!-- 3 Kartu Ringkasan Top-Bar Konsisten (Grid 3 Kolom) -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 no-print">
-    <!-- Kartu 1: Total Master Bahan -->
-    <div class="card-summary">
-        <div class="flex justify-between items-start">
-            <p class="card-title uppercase" style="color: #d97706;">TOTAL MASTER BAHAN</p>
+        <h1 id="j-stok">Pengadaan dan stok bahan produksi</h1>
+        <p>Cek stok bahan baku, catat nota pembelian dari supplier, dan lihat rekap belanja bulan ini (Rp {{ number_format($totalPengadaanBulanIni ?? 0, 0, ',', '.') }}).</p>
+        <div class="acts">
+            <button type="button" class="btn" onclick="openPurchaseModal()">Catat nota pembelian</button>
+            <button type="button" class="btn ghost" onclick="openDialog('modal-material')">Tambah master bahan</button>
         </div>
-        <h3 class="card-value" style="color: var(--pc-dark);">
-            {{ number_format($totalBahanCount ?? 0) }} <span style="font-size:0.75rem; color: var(--text-muted);">Jenis</span>
-        </h3>
-        <p class="font-bold mt-2" style="font-size:0.625rem; color: #059669;">✓ Terdaftar di Sistem</p>
+    </div>
+    <ul class="trio" aria-label="Ringkasan">
+        <li>
+            <div class="disc {{ ($totalBahanCount ?? 0) > 0 ? 'fill' : 'empty' }}">{{ number_format($totalBahanCount ?? 0) }}</div>
+            <b>Jenis bahan</b>
+            <span>terdaftar</span>
+        </li>
+        <li>
+            <div class="disc {{ ($stokKritisCount ?? 0) > 0 ? 'alert' : 'empty' }}">{{ number_format($stokKritisCount ?? 0) }}</div>
+            <b>Stok kritis</b>
+            <span>perlu dibeli ulang</span>
+        </li>
+    </ul>
+</section>
+
+<section class="panel" id="panel-stok" aria-label="Bahan baku">
+    <div class="tabs" role="group" aria-label="Tampilan">
+        <button type="button" data-t="stok" aria-selected="true">Stok bahan baku</button>
+        <button type="button" data-t="riwayat" aria-selected="false">Riwayat pembelian</button>
     </div>
 
-    <!-- Kartu 2: Stok Kritis / Restock -->
-    <div class="card-summary" style="{{ ($stokKritisCount ?? 0) > 0 ? 'border-left: 4px solid #ef4444;' : 'border-left: 4px solid #10b981;' }}">
-        <div class="flex justify-between items-start">
-            <p class="card-title uppercase" style="color: #dc2626;">STOK KRITIS / RESTOCK</p>
+    <div id="t-stok" data-filter-box data-total="{{ $sortedMaterials->count() }}" data-unit="bahan">
+        <div class="chips">
+            <button type="button" data-f="semua" aria-pressed="true">Semua</button>
+            <button type="button" data-f="kritis" aria-pressed="false">Kritis</button>
+            <button type="button" data-f="aman" aria-pressed="false">Aman</button>
+            <p>Garis tegak pada batang menandai batas minimum 10.</p>
         </div>
-        <h3 class="card-value" style="color: var(--pc-dark);">
-            {{ number_format($stokKritisCount ?? 0) }} <span style="font-size:0.75rem; color: var(--text-muted);">Bahan</span>
-        </h3>
-        @if(($stokKritisCount ?? 0) > 0)
-            <p class="font-black mt-2" style="font-size:0.625rem; color: #dc2626;">⚠️ Butuh Pembelian Ulang</p>
+
+        @if($sortedMaterials->isNotEmpty())
+            <ul class="rows">
+                @foreach($sortedMaterials as $mat)
+                    @php
+                        $isKritis = $mat->qty_stok <= 5;
+                        $gaugePct = min(100, max(4, (int) round(($mat->qty_stok / 20) * 100)));
+                        $qtyLabel = rtrim(rtrim(number_format((float) $mat->qty_stok, 2, '.', ''), '0'), '.');
+                    @endphp
+                    <li class="row {{ $isKritis ? 'low' : 'ok' }}"
+                        data-s="{{ $isKritis ? 'kritis' : 'aman' }}"
+                        data-q="{{ strtolower('bahan-00' . $mat->id_bahan . ' ' . $mat->nama_bahan . ' ' . $mat->tipe . ' ' . $mat->ukuran) }}"
+                        @if($loop->index >= 6) data-more="1" hidden @endif>
+                        <div>
+                            <b>{{ $mat->nama_bahan }}</b>
+                            <small>BAHAN-00{{ $mat->id_bahan }}, {{ $mat->tipe }}</small>
+                        </div>
+                        <div class="gauge"><i style="width:{{ $gaugePct }}%"></i></div>
+                        <div class="qty">{{ $qtyLabel }} <small>{{ $mat->ukuran }}</small></div>
+                        <span class="st">{{ $isKritis ? 'Kritis' : 'Stok aman' }}</span>
+                        <div class="act">
+                            <button type="button" onclick="editMaterial({{ $mat->id_bahan }}, {{ \Illuminate\Support\Js::from($mat->nama_bahan) }}, {{ \Illuminate\Support\Js::from($mat->tipe) }}, {{ \Illuminate\Support\Js::from($mat->ukuran) }}, {{ (float) $mat->qty_stok }})">Ubah</button>
+                            <form action="{{ route('raw-materials.material.destroy', $mat->id_bahan) }}" method="POST" onsubmit="return confirm('Hapus master bahan baku ini?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="del">Hapus</button>
+                            </form>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+            <div class="empty-filter" hidden>
+                <strong>Tidak ada bahan yang cocok</strong>
+                Pilih filter lain untuk menampilkan stok bahan baku.
+            </div>
+            <div class="foot">
+                <span id="cnt" data-cnt>Menampilkan {{ min(6, $sortedMaterials->count()) }} dari {{ $sortedMaterials->count() }} bahan</span>
+                @if($sortedMaterials->count() > 6)
+                    <button type="button" class="btn" data-expand="Lihat semua {{ $sortedMaterials->count() }} bahan" data-collapse="Tampilkan 6 bahan">Lihat semua {{ $sortedMaterials->count() }} bahan</button>
+                @endif
+            </div>
         @else
-            <p class="font-bold mt-2" style="font-size:0.625rem; color: #059669;">✓ Semua Stok Aman</p>
+            <x-void-state
+                title="Belum ada master bahan baku"
+                description="Tambahkan master bahan baku pertama agar stok dapur dan nota pembelian supplier bisa dicatat."
+            >
+                <x-slot:action>
+                    <button type="button" class="btn" onclick="openDialog('modal-material')">Tambah master bahan</button>
+                </x-slot:action>
+            </x-void-state>
         @endif
     </div>
 
-    <!-- Kartu 3: Total Pengadaan Bulan Ini -->
-    <div class="card-summary" style="border-left: 4px solid var(--pc-maroon);">
-        <div class="flex justify-between items-start">
-            <p class="card-title uppercase" style="color: var(--pc-maroon);">BELANJA BAHAN (BULAN INI)</p>
+    <div id="t-riwayat" hidden>
+        <div class="filter-bar no-print">
+            <form action="{{ route('raw-materials.index') }}" method="GET">
+                <select name="periode" class="field" aria-label="Filter periode transaksi">
+                    <option value="">Semua riwayat</option>
+                    <option value="minggu_ini" {{ request('periode') == 'minggu_ini' ? 'selected' : '' }}>Minggu ini</option>
+                    <option value="bulan_ini" {{ request('periode') == 'bulan_ini' ? 'selected' : '' }}>Bulan ini</option>
+                </select>
+                <button type="submit" class="btn outline">Filter</button>
+            </form>
+            <div class="filter-summary">
+                <span>Belanja bulan ini: <strong>Rp {{ number_format($totalPengadaanBulanIni ?? 0, 0, ',', '.') }}</strong></span>
+                <button type="button" class="btn outline" onclick="window.print()">Cetak laporan transaksi</button>
+            </div>
         </div>
-        <h3 class="card-value" style="color: var(--pc-maroon);">
-            Rp {{ number_format($totalPengadaanBulanIni ?? 0, 0, ',', '.') }}
-        </h3>
-        <p class="mt-2" style="font-size:0.625rem; color: var(--text-muted);">Akumulasi Pembelian Supplier</p>
+
+        @if(count($groupedTransactions) > 0)
+            <ul class="rows">
+                @foreach($groupedTransactions as $groupKey => $items)
+                    @php
+                        $firstItem = $items->first();
+                        $txInfo = $txDetailMap[$groupKey];
+                        $txIds = $items->pluck('no_transaksi_beli')->toArray();
+                    @endphp
+                    <li class="row tx ok">
+                        <div>
+                            <b>{{ $firstItem->nama_supplier }}</b>
+                            <small>{{ $txInfo['kode_transaksi'] }} · {{ $txInfo['waktu_transaksi'] }}</small>
+                        </div>
+                        <div class="qty">
+                            {{ $items->count() }} <small>jenis ({{ number_format($txInfo['total_qty']) }} qty)</small>
+                        </div>
+                        <div class="price">
+                            <b>Rp {{ number_format($txInfo['total_harga'], 0, ',', '.') }}</b>
+                            <small>total belanja</small>
+                        </div>
+                        <div class="act">
+                            <button type="button" onclick="showDetailGroup({{ \Illuminate\Support\Js::from($groupKey) }})">Detail</button>
+                            <form action="{{ route('raw-materials.purchase.destroy-group') }}" method="POST" onsubmit="return confirm('Hapus seluruh nota pembelian ini? Stok bahan akan disesuaikan.')">
+                                @csrf
+                                @foreach($txIds as $id)
+                                    <input type="hidden" name="ids[]" value="{{ $id }}">
+                                @endforeach
+                                <button type="submit" class="del">Hapus</button>
+                            </form>
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+        @else
+            <x-void-state
+                title="Belum ada nota pembelian"
+                description="Nota dari supplier yang kamu catat akan muncul di sini, lengkap dengan rekap belanja per bulan."
+            >
+                <x-slot:action>
+                    <button type="button" class="btn" onclick="openPurchaseModal()">Catat nota pembelian</button>
+                </x-slot:action>
+            </x-void-state>
+        @endif
     </div>
-</div>
+</section>
 
-<!-- TOMBOL NAVIGASI TAB TERHUBUNG DENGAN SCRIPT -->
-<div class="tab-navigation-bar no-print">
-    <button type="button" onclick="switchTab('stok')" id="tab-btn-stok" class="tab-nav-btn active">
-        📦 Stok Bahan Baku
-    </button>
-    <button type="button" onclick="switchTab('riwayat')" id="tab-btn-riwayat" class="tab-nav-btn">
-        📜 Riwayat Transaksi Pembelian
-    </button>
-</div>
+<!-- Modal Catat Nota Pembelian Bahan -->
+<x-modal
+    id="modal-purchase"
+    title="Catat nota pembelian bahan"
+    subtitle="Catat belanja multi-item dari supplier untuk menambah stok bahan baku secara otomatis."
+    :wide="true"
+>
+    <form action="{{ route('raw-materials.purchase.store') }}" method="POST">
+        @csrf
+        <div class="modal-body">
+            <div class="nota-header-meta">
+                <span>{{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</span>
+                <span class="nota-code">{{ $nextTrsCode ?? 'TRS - 001 - ' . date('dmy') }}</span>
+            </div>
 
-<!-- TAB 1: STOK BAHAN BAKU (DEFAULT ACTIVE) -->
-<div id="tab-content-stok">
-    <div class="table-container">
-        <div class="table-header-bar">
-            <span class="font-bold" style="color: var(--pc-dark);">📦 Daftar Master & Stok Bahan Baku</span>
-        </div>
-        <div class="table-responsive-wrapper">
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>ID / NAMA BAHAN</th>
-                        <th>TIPE BAHAN</th>
-                        <th>SATUAN UKURAN</th>
-                        <th>STOK AKTUAL</th>
-                        <th class="text-center">STATUS KECUKUPAN</th>
-                        <th class="text-center no-print">AKSI</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($materials as $mat)
-                    <tr>
-                        <td style="vertical-align: middle;">
-                            <p class="font-black" style="color: var(--pc-dark); margin:0;">{{ $mat->nama_bahan }}</p>
-                            <p style="font-size: 0.625rem; color: var(--text-muted); margin: 0.125rem 0 0 0;">ID: BAHAN-00{{ $mat->id_bahan }}</p>
-                        </td>
-                        <td class="uppercase font-bold" style="color: #4b5563; vertical-align: middle;">{{ $mat->tipe }}</td>
-                        <td class="font-bold" style="color: #6b7280; vertical-align: middle;">{{ $mat->ukuran }}</td>
-                        <td class="font-black text-sm" style="color: #059669; vertical-align: middle;">
-                            {{ number_format($mat->qty_stok) }} {{ $mat->ukuran }}
-                        </td>
-                        <td class="text-center" style="vertical-align: middle;">
-                            @if($mat->qty_stok <= 5)
-                                <span class="badge" style="background-color: #fef2f2; color: #dc2626; border-color: #fecaca;">
-                                    ⚠️ Stok Kritis
-                                </span>
-                            @else
-                                <span class="badge badge-emerald">
-                                    ✓ Stok Aman
-                                </span>
-                            @endif
-                        </td>
-                        <td class="text-center no-print" style="vertical-align: middle;">
-                            <div class="flex items-center justify-center gap-2">
-                                <button onclick="editMaterial('{{ $mat->id_bahan }}', '{{ addslashes($mat->nama_bahan) }}', '{{ $mat->tipe }}', '{{ addslashes($mat->ukuran) }}', '{{ $mat->qty_stok }}')"
-                                        title="Edit Master Bahan" class="btn btn-outline" style="padding: 0.35rem 0.65rem;">
-                                    ✏️ Edit
-                                </button>
-
-                                <form action="{{ route('raw-materials.material.destroy', $mat->id_bahan) }}" method="POST" onsubmit="return confirm('Hapus master bahan baku ini?')" style="display:inline; margin:0;">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" title="Hapus Master Bahan" class="btn" style="background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 0.35rem 0.65rem;">
-                                        🗑️ Hapus
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="6" class="text-center" style="color: var(--text-muted); padding: 1.5rem;">Belum ada master bahan baku.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- TAB 2: RIWAYAT TRANSAKSI PEMBELIAN -->
-<div id="tab-content-riwayat" class="hidden">
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 no-print mb-4" style="background: #fff; padding: 1rem; border-radius: 1rem; border: 1px solid var(--border-color);">
-        <form action="{{ route('raw-materials.index') }}" method="GET" class="flex items-center gap-2">
-            <span class="font-bold" style="color: #4b5563;">Filter Periode:</span>
-            <select name="periode" class="form-input font-bold" style="background:#fff; margin:0; width:auto;">
-                <option value="">Semua Riwayat</option>
-                <option value="minggu_ini" {{ request('periode') == 'minggu_ini' ? 'selected' : '' }}>Minggu Ini</option>
-                <option value="bulan_ini" {{ request('periode') == 'bulan_ini' ? 'selected' : '' }}>Bulan Ini</option>
-            </select>
-            <button type="submit" class="btn btn-outline">Filter</button>
-        </form>
-
-        <button onclick="window.print()" class="btn btn-outline">
-            🖨️ Cetak Laporan Transaksi Beli
-        </button>
-    </div>
-
-    <div class="table-container">
-        <div class="table-header-bar">
-            <span class="font-bold" style="color: var(--pc-dark);">📜 Riwayat Transaksi & Nota Pembelian Bahan</span>
-        </div>
-        <div class="table-responsive-wrapper">
-            <table class="custom-table" style="table-layout: fixed;">
-                <colgroup>
-                    <col style="width: 36%;">
-                    <col style="width: 22%;">
-                    <col style="width: 20%;">
-                    <col style="width: 22%;">
-                </colgroup>
-                <thead>
-                    <tr>
-                        <th>KODE & SUPPLIER</th>
-                        <th class="text-center">JUMLAH ITEM</th>
-                        <th class="text-right">TOTAL BELANJA</th>
-                        <th class="text-center no-print">AKSI</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if(count($groupedTransactions) > 0)
-                        @foreach($groupedTransactions as $groupKey => $items)
-                            @php
-                                $firstItem = $items->first();
-                                $txInfo = $txDetailMap[$groupKey];
-                                $txIds = $items->pluck('no_transaksi_beli')->toArray();
-                            @endphp
-                            <tr>
-                                <td style="vertical-align: middle;">
-                                    <span class="font-black" style="color: #d97706; font-size: 0.6875rem;">{{ $txInfo['kode_transaksi'] }}</span>
-                                    <p class="font-black" style="color: var(--pc-dark); margin: 0.15rem 0 0 0; font-size: 0.8125rem;">{{ $firstItem->nama_supplier }}</p>
-                                    <p style="font-size: 0.625rem; color: var(--text-muted); margin: 0.15rem 0 0 0;">🕒 {{ $txInfo['waktu_transaksi'] }}</p>
-                                </td>
-                                <td class="text-center font-bold" style="color: #4b5563; vertical-align: middle;">
-                                    <span class="badge" style="background-color: #f3f4f6; color: #374151; font-size: 0.6875rem; padding: 0.3rem 0.6rem;">
-                                        {{ $items->count() }} Jenis Bahan ({{ number_format($txInfo['total_qty']) }} Qty)
-                                    </span>
-                                </td>
-                                <td class="text-right font-black" style="color: var(--pc-maroon); font-size: 0.8125rem; vertical-align: middle;">
-                                    Rp {{ number_format($txInfo['total_harga'], 0, ',', '.') }}
-                                </td>
-                                <td class="text-center no-print" style="vertical-align: middle;">
-                                    <div class="flex items-center justify-center gap-2">
-                                        <button type="button"
-                                                onclick="showDetailGroup({{ \Illuminate\Support\Js::from($groupKey) }})"
-                                                class="btn btn-outline" style="padding: 0.375rem 0.7rem;">
-                                            👁️ Detail
-                                        </button>
-
-                                        <form action="{{ route('raw-materials.purchase.destroy-group') }}" method="POST" onsubmit="return confirm('Hapus seluruh nota pembelian ini? Stok bahan akan disesuaikan.')" style="display:inline; margin:0;">
-                                            @csrf
-                                            @foreach($txIds as $id)
-                                                <input type="hidden" name="ids[]" value="{{ $id }}">
-                                            @endforeach
-                                            <button type="submit" title="Hapus Transaksi Nota Ini" class="btn" style="background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 0.375rem 0.7rem;">
-                                                🗑️ Hapus
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    @else
-                        <tr>
-                            <td colspan="4" class="text-center" style="color: var(--text-muted); padding: 1.5rem;">Belum ada riwayat transaksi pembelian.</td>
-                        </tr>
-                    @endif
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL CATAT NOTA PEMBELIAN BAHAN (RAPIH & PROPORSIONAL) -->
-<div id="modal-purchase" class="modal-overlay hidden">
-    <div class="modal-box" style="max-width: 56rem; padding: 1.5rem; max-height: 92vh; overflow-y: auto;">
-        <!-- Tombol Close Pojok Kanan Atas -->
-        <div class="flex justify-end" style="margin-bottom: 0.5rem;">
-            <button type="button"
-                    onclick="document.getElementById('modal-purchase').classList.add('hidden')"
-                    style="width: 1.75rem; height: 1.75rem; border-radius: 9999px; background-color: #e5e7eb; color: #4b5563; border: none; cursor: pointer; font-weight: 900; display: flex; align-items: center; justify-content: center;"
-                    title="Tutup">
-                ✕
-            </button>
-        </div>
-
-        <!-- Banner Judul Form -->
-        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 0.75rem 1rem; text-align: center;">
-            <h3 class="font-black" style="margin: 0; font-size: 1.05rem; color: var(--pc-dark);">
-                Catat Nota Pembelian Bahan
-            </h3>
-        </div>
-
-        <!-- Baris Tanggal Transaksi & Preview Kode Transaksi -->
-        <div class="flex flex-wrap justify-between items-center gap-2 mt-3 px-1">
-            <span class="font-black" style="font-size: 0.8125rem; color: var(--pc-dark);">
-                {{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}
-            </span>
-            <span class="font-black" style="font-size: 0.8125rem; color: #eab308; letter-spacing: 0.03em;">
-                {{ $nextTrsCode ?? 'TRS - 001 - ' . date('dmy') }}
-            </span>
-        </div>
-
-        <form action="{{ route('raw-materials.purchase.store') }}" method="POST" style="margin-top: 0.75rem;">
-            @csrf
-
-            <!-- Kotak Ringkasan Input Toko, Ongkir, Total Item & Total Harga Otomatis -->
-            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 0.875rem 1rem;">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label class="font-bold" style="font-size: 0.75rem; color: #374151;">Nama Toko / Supplier *</label>
-                        <input type="text" name="nama_supplier" required placeholder="Misal: Agen Murni Jaya" class="form-input" style="margin-top: 0.25rem; background: #fff;">
+            <div class="form-box">
+                <div class="form-grid two">
+                    <div class="form-field">
+                        <label class="form-label" for="purchase-supplier">Nama Toko / Supplier *</label>
+                        <input id="purchase-supplier" type="text" name="nama_supplier" required placeholder="Misal: Agen Murni Jaya" class="form-input">
                     </div>
-                    <div>
-                        <label class="font-bold" style="font-size: 0.75rem; color: #374151;">Ongkos Kirim (Opsional - Rp)</label>
-                        <input type="number" id="input-total-ongkir" name="total_ongkir" value="0" min="0" oninput="recalcPurchaseSummary()" class="form-input" style="margin-top: 0.25rem; background: #fff;">
+                    <div class="form-field">
+                        <label class="form-label" for="input-total-ongkir">Ongkos Kirim (Opsional - Rp)</label>
+                        <input type="number" id="input-total-ongkir" name="total_ongkir" value="0" min="0" oninput="recalcPurchaseSummary()" class="form-input">
                     </div>
                 </div>
-
-                <div class="flex flex-wrap justify-between items-center gap-2 mt-3 pt-2" style="border-top: 1px dashed #cbd5e1; font-size: 0.8125rem;">
-                    <div>
-                        <span style="color: #4b5563; font-weight: 600;">Total Item : </span>
-                        <span id="summary-total-item" class="font-black" style="color: var(--pc-dark);">1 Jenis Bahan</span>
-                    </div>
-                    <div>
-                        <span style="color: #4b5563; font-weight: 600;">Total Harga : </span>
-                        <span id="summary-total-harga" class="font-black" style="color: var(--pc-maroon); font-size: 0.9rem;">Rp. 0</span>
-                    </div>
+                <div class="summary-kv">
+                    <span>Total item: <strong id="summary-total-item">1 Jenis Bahan</strong></span>
+                    <span>Total harga: <strong id="summary-total-harga">Rp. 0</strong></span>
                 </div>
             </div>
 
-            <!-- Header Aksi Tambah Item -->
-            <div class="flex justify-between items-center mt-4 mb-2">
-                <span class="font-black" style="color: var(--pc-dark); font-size: 0.75rem;">Daftar Rincian Item Pembelian:</span>
-                <button type="button" onclick="addRow()" class="btn btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.6875rem;">
-                    + Tambah Baris Item
-                </button>
+            <div class="form-box-head">
+                <span>Daftar rincian item pembelian</span>
+                <button type="button" onclick="addRow()" class="btn outline">+ Tambah baris item</button>
             </div>
 
-            <!-- Tabel Input 6 Kolom Proporsional -->
-            <div class="table-responsive-wrapper" style="border: 1.5px solid #93c5fd; border-radius: 0.5rem; overflow-x: auto;">
-                <table class="custom-table table-compact" style="margin: 0; width: 100%; min-width: 44rem;">
-                    <colgroup>
-                        <col style="width: 2.5rem;">
-                        <col style="width: auto;">
-                        <col style="width: 4.75rem;">
-                        <col style="width: 5.5rem;">
-                        <col style="width: 7.75rem;">
-                        <col style="width: 8.25rem;">
-                        <col style="width: 2.25rem;">
-                    </colgroup>
+            <div class="modal-table-wrap">
+                <table class="nota-table">
                     <thead>
-                        <tr style="background-color: #fef9c3;">
-                            <th class="text-center" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">No.</th>
-                            <th style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Item</th>
-                            <th class="text-center" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">QTY</th>
-                            <th class="text-center" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Satuan</th>
-                            <th class="text-right" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Harga Satuan</th>
-                            <th class="text-right" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Total harga</th>
-                            <th class="text-center" style="background-color: #fef9c3;"></th>
+                        <tr>
+                            <th class="ctr">No.</th>
+                            <th>Item</th>
+                            <th class="ctr">Qty</th>
+                            <th class="ctr">Satuan</th>
+                            <th class="num">Harga Satuan</th>
+                            <th class="num">Total Harga</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody id="purchase-tbody">
@@ -324,211 +213,189 @@
                             $defaultSatuan = $materials->first()->ukuran ?? '-';
                         @endphp
                         <tr class="purchase-row">
-                            <td class="text-center font-bold row-number" style="color: #4b5563;">1</td>
+                            <td class="ctr row-number">1</td>
                             <td>
-                                <select name="bahan_ids[]" onchange="onBahanSelectChange(this)" required class="form-input font-bold" style="margin: 0; background: #fff; font-size: 0.75rem; padding: 0.4rem 0.5rem; width: 100%;">
+                                <select name="bahan_ids[]" onchange="onBahanSelectChange(this)" required class="form-input">
                                     @foreach($materials as $m)
                                         <option value="{{ $m->id_bahan }}" data-satuan="{{ $m->ukuran }}">{{ $m->nama_bahan }}</option>
                                     @endforeach
                                 </select>
                             </td>
                             <td>
-                                <input type="number" name="qty[]" step="any" min="0.1" required placeholder="0" oninput="recalcRowFromUnit(this)" class="form-input text-center font-bold input-qty" style="margin: 0; font-size: 0.75rem; padding: 0.4rem 0.35rem; width: 100%;">
+                                <input type="number" name="qty[]" step="any" min="0.1" required placeholder="0" oninput="recalcRowFromUnit(this)" class="form-input input-qty">
                             </td>
-                            <td class="text-center">
-                                <span class="badge satuan-label" style="background-color: #f3f4f6; color: #374151; font-weight: 800;">{{ $defaultSatuan }}</span>
-                            </td>
-                            <td>
-                                <input type="number" name="harga_satuan[]" min="0" required placeholder="Rp 0" oninput="recalcRowFromUnit(this)" class="form-input text-right font-semibold input-harga-satuan" style="margin: 0; font-size: 0.75rem; padding: 0.4rem 0.5rem; width: 100%;">
+                            <td class="ctr">
+                                <span class="tag satuan-label">{{ $defaultSatuan }}</span>
                             </td>
                             <td>
-                                <input type="number" name="harga_total[]" min="0" required placeholder="Rp 0" oninput="recalcRowFromTotal(this)" class="form-input text-right font-black input-harga-total" style="margin: 0; font-size: 0.75rem; padding: 0.4rem 0.5rem; width: 100%; color: var(--pc-dark);">
+                                <input type="number" name="harga_satuan[]" min="0" required placeholder="0" oninput="recalcRowFromUnit(this)" class="form-input input-harga-satuan">
                             </td>
-                            <td class="text-center">
-                                <button type="button" onclick="removeRow(this)" style="color: #ef4444; font-weight: 900; background: none; border: none; cursor: pointer; padding: 0.25rem;" title="Hapus Baris">✕</button>
+                            <td>
+                                <input type="number" name="harga_total[]" min="0" required placeholder="0" oninput="recalcRowFromTotal(this)" class="form-input input-harga-total">
+                            </td>
+                            <td class="ctr">
+                                <button type="button" onclick="removeRow(this)" class="row-remove-btn" title="Hapus baris">&times;</button>
                             </td>
                         </tr>
                     </tbody>
                     <tfoot>
-                        <tr style="background-color: #fefce8; border-top: 1px solid #e2e8f0;">
-                            <td colspan="5" class="text-right font-black" style="color: var(--pc-dark); font-size: 0.8125rem; text-align: right;">Grand Total Nota</td>
-                            <td id="tfoot-grand-total" class="text-right font-black" style="color: var(--pc-maroon); font-size: 0.875rem; text-align: right; white-space: nowrap;">Rp. 0</td>
+                        <tr>
+                            <td colspan="5" class="num">Grand Total Nota</td>
+                            <td id="tfoot-grand-total" class="num">Rp. 0</td>
                             <td></td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
+        </div>
 
-            <div class="flex justify-end gap-2 mt-4">
-                <button type="button" onclick="document.getElementById('modal-purchase').classList.add('hidden')" class="btn btn-outline">Batal</button>
-                <button type="submit" class="btn btn-primary">Simpan Nota Pembelian</button>
+        <div class="modal-foot">
+            <span>Stok bahan bertambah otomatis setelah disimpan</span>
+            <div class="acts">
+                <button type="button" class="btn outline" data-close>Batal</button>
+                <button type="submit" class="btn">Simpan nota pembelian</button>
             </div>
-        </form>
-    </div>
-</div>
+        </div>
+    </form>
+</x-modal>
 
-<!-- MODAL DETAIL TRANSAKSI PEMBELIAN BAHAN (SESUAI RANCANGAN NOTA) -->
-<div id="modal-detail" class="modal-overlay hidden">
-    <div class="modal-box" style="max-width: 48rem; padding: 1.5rem; position: relative; max-height: 90vh; overflow-y: auto;">
-        <div class="flex justify-end no-print" style="margin-bottom: 0.5rem;">
-            <button type="button"
-                    onclick="document.getElementById('modal-detail').classList.add('hidden')"
-                    style="width: 1.75rem; height: 1.75rem; border-radius: 9999px; background-color: #e5e7eb; color: #4b5563; border: none; cursor: pointer; font-weight: 900; display: flex; align-items: center; justify-content: center;"
-                    title="Tutup">
-                ✕
-            </button>
+<!-- Modal Detail Transaksi Pembelian -->
+<x-modal
+    id="modal-detail"
+    title="Transaksi pembelian bahan"
+    subtitle="Rincian nota pembelian supplier beserta ongkos kirim."
+    :wide="true"
+>
+    <div class="modal-body">
+        <div class="nota-header-meta">
+            <span id="detail-waktu-transaksi">-</span>
+            <span id="detail-kode-transaksi" class="nota-code">TRS - 000 - 000000</span>
         </div>
 
-        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 0.75rem 1rem; text-align: center;">
-            <h3 class="font-black" style="margin: 0; font-size: 1.05rem; color: var(--pc-dark); letter-spacing: 0.01em;">
-                Transaksi Pembelian Bahan
-            </h3>
+        <div class="modal-meta">
+            <div><span>Nama toko / supplier</span><b id="detail-nama-toko">-</b></div>
+            <div><span>Total item</span><b id="detail-total-item">0</b></div>
+            <div><span>Total harga nota</span><b id="detail-total-harga">Rp. 0</b></div>
         </div>
 
-        <div class="flex flex-wrap justify-between items-center gap-2 mt-4 px-1">
-            <span id="detail-waktu-transaksi" class="font-black" style="font-size: 0.875rem; color: var(--pc-dark);">
-                -
-            </span>
-            <span id="detail-kode-transaksi" class="font-black" style="font-size: 0.875rem; color: #eab308; letter-spacing: 0.03em;">
-                TRS - 000 - 000000
-            </span>
-        </div>
-
-        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.625rem; padding: 0.875rem 1.125rem; margin-top: 0.75rem; font-size: 0.8125rem;">
-            <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                    <td style="width: 7.5rem; padding: 0.25rem 0; color: #4b5563; font-weight: 600;">Nama Toko</td>
-                    <td style="width: 1rem; padding: 0.25rem 0; color: #4b5563; font-weight: 700;">:</td>
-                    <td id="detail-nama-toko" class="font-black" style="padding: 0.25rem 0; color: var(--pc-dark);">-</td>
-                </tr>
-                <tr>
-                    <td style="padding: 0.25rem 0; color: #4b5563; font-weight: 600;">Total Item</td>
-                    <td style="padding: 0.25rem 0; color: #4b5563; font-weight: 700;">:</td>
-                    <td id="detail-total-item" class="font-bold" style="padding: 0.25rem 0; color: var(--pc-dark);">0</td>
-                </tr>
-                <tr>
-                    <td style="padding: 0.25rem 0; color: #4b5563; font-weight: 600;">Total Harga</td>
-                    <td style="padding: 0.25rem 0; color: #4b5563; font-weight: 700;">:</td>
-                    <td id="detail-total-harga" class="font-black" style="padding: 0.25rem 0; color: var(--pc-maroon); font-size: 0.9rem;">Rp. 0</td>
-                </tr>
-            </table>
-        </div>
-
-        <div class="table-responsive-wrapper mt-4" style="border: 1.5px solid #93c5fd; border-radius: 0.5rem; overflow: hidden;">
-            <table class="custom-table table-compact" style="margin: 0;">
+        <div class="modal-table-wrap">
+            <table class="nota-table">
                 <thead>
-                    <tr style="background-color: #fef9c3;">
-                        <th class="text-center" style="width: 3rem; color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">No.</th>
-                        <th style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Item</th>
-                        <th class="text-center" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">QTY</th>
-                        <th class="text-center" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Satuan</th>
-                        <th class="text-right" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Harga Satuan</th>
-                        <th class="text-right" style="color: var(--pc-dark); font-weight: 800; background-color: #fef9c3;">Total harga</th>
+                    <tr>
+                        <th class="ctr">No.</th>
+                        <th>Item</th>
+                        <th class="ctr">Qty</th>
+                        <th class="ctr">Satuan</th>
+                        <th class="num">Harga Satuan</th>
+                        <th class="num">Total Harga</th>
                     </tr>
                 </thead>
-                <tbody id="detail-tbody">
-                </tbody>
-                <tfoot id="detail-tfoot" style="background-color: #f8fafc; border-top: 1px solid #e2e8f0;">
-                </tfoot>
+                <tbody id="detail-tbody"></tbody>
+                <tfoot id="detail-tfoot"></tfoot>
             </table>
         </div>
+    </div>
 
-        <div class="flex justify-end items-center gap-2 mt-4 no-print">
-            <button type="button" onclick="window.print()" class="btn btn-outline">
-                🖨️ Cetak Nota
-            </button>
-            <button type="button" onclick="document.getElementById('modal-detail').classList.add('hidden')" class="btn btn-primary">
-                Tutup
-            </button>
+    <div class="modal-foot no-print">
+        <span>Arsip nota pembelian bahan baku</span>
+        <div class="acts">
+            <button type="button" onclick="window.print()" class="btn outline">Cetak nota</button>
+            <button type="button" class="btn" data-close>Tutup</button>
         </div>
     </div>
-</div>
+</x-modal>
 
-<!-- Modal Pop-up Master Bahan Baru -->
-<div id="modal-material" class="modal-overlay hidden">
-    <div class="modal-box">
-        <div class="flex justify-between items-center" style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
-            <h3 class="font-black text-sm" style="margin:0;">Tambah Master Bahan Baku Baru</h3>
-            <button onclick="document.getElementById('modal-material').classList.add('hidden')" style="background:none; border:none; cursor:pointer; font-weight:bold;">✕</button>
-        </div>
-
-        <form action="{{ route('raw-materials.material.store') }}" method="POST" style="margin-top: 1rem;">
-            @csrf
-            <div>
-                <label class="font-bold">Nama Bahan Baku</label>
-                <input type="text" name="nama_bahan" required placeholder="Misal: Tepung Tapioka Super" class="form-input">
+<!-- Modal Tambah Master Bahan Baru -->
+<x-modal
+    id="modal-material"
+    title="Tambah master bahan baku"
+    subtitle="Daftarkan bahan baku baru ke inventaris dapur Pangeran Condet."
+>
+    <form action="{{ route('raw-materials.material.store') }}" method="POST">
+        @csrf
+        <div class="modal-body">
+            <div class="form-field">
+                <label class="form-label" for="add-nama-bahan">Nama Bahan Baku *</label>
+                <input id="add-nama-bahan" type="text" name="nama_bahan" required placeholder="Misal: Tepung Tapioka Super" class="form-input">
             </div>
 
-            <div class="grid grid-cols-2 gap-2 mt-2">
-                <div>
-                    <label class="font-bold">Tipe Bahan</label>
-                    <select name="tipe" class="form-input font-bold" style="background:#fff;">
+            <div class="form-grid two">
+                <div class="form-field">
+                    <label class="form-label" for="add-tipe-bahan">Tipe Bahan *</label>
+                    <select id="add-tipe-bahan" name="tipe" class="form-input">
                         <option value="kering">Kering</option>
                         <option value="basah">Basah</option>
                     </select>
                 </div>
-                <div>
-                    <label class="font-bold">Satuan Ukuran</label>
-                    <input type="text" name="ukuran" required placeholder="kg / Liter / pack" class="form-input">
+                <div class="form-field">
+                    <label class="form-label" for="add-ukuran-bahan">Satuan Ukuran *</label>
+                    <input id="add-ukuran-bahan" type="text" name="ukuran" required placeholder="kg / Liter / pack" class="form-input">
                 </div>
             </div>
 
-            <div class="mt-2">
-                <label class="font-bold">Stok Awal</label>
-                <input type="number" name="qty_stok" value="0" required class="form-input">
+            <div class="form-field">
+                <label class="form-label" for="add-stok-bahan">Stok Awal *</label>
+                <input id="add-stok-bahan" type="number" name="qty_stok" value="0" min="0" step="any" required class="form-input">
             </div>
-
-            <div class="flex justify-end gap-2 mt-4">
-                <button type="button" onclick="document.getElementById('modal-material').classList.add('hidden')" class="btn btn-outline">Batal</button>
-                <button type="submit" class="btn btn-primary">Simpan Master Bahan</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Modal Edit Master Bahan Baku -->
-<div id="modal-edit-material" class="modal-overlay hidden">
-    <div class="modal-box">
-        <div class="flex justify-between items-center" style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
-            <h3 class="font-black text-sm" style="margin:0;">Edit Master Bahan Baku</h3>
-            <button onclick="document.getElementById('modal-edit-material').classList.add('hidden')" style="background:none; border:none; cursor:pointer; font-weight:bold;">✕</button>
         </div>
 
-        <form id="form-edit-material" method="POST" style="margin-top: 1rem;">
-            @csrf
-            @method('PUT')
-            <div>
-                <label class="font-bold">Nama Bahan Baku</label>
+        <div class="modal-foot">
+            <span>Batas minimum aman adalah 10 unit</span>
+            <div class="acts">
+                <button type="button" class="btn outline" data-close>Batal</button>
+                <button type="submit" class="btn">Simpan master bahan</button>
+            </div>
+        </div>
+    </form>
+</x-modal>
+
+<!-- Modal Edit Master Bahan Baku -->
+<x-modal
+    id="modal-edit-material"
+    title="Ubah master bahan baku"
+    subtitle="Perbarui informasi nama, tipe, satuan, atau stok aktual bahan baku."
+>
+    <form id="form-edit-material" method="POST">
+        @csrf
+        @method('PUT')
+        <div class="modal-body">
+            <div class="form-field">
+                <label class="form-label" for="edit-nama-bahan">Nama Bahan Baku *</label>
                 <input type="text" id="edit-nama-bahan" name="nama_bahan" required class="form-input">
             </div>
 
-            <div class="grid grid-cols-2 gap-2 mt-2">
-                <div>
-                    <label class="font-bold">Tipe Bahan</label>
-                    <select id="edit-tipe" name="tipe" class="form-input font-bold" style="background:#fff;">
+            <div class="form-grid two">
+                <div class="form-field">
+                    <label class="form-label" for="edit-tipe">Tipe Bahan *</label>
+                    <select id="edit-tipe" name="tipe" class="form-input">
                         <option value="kering">Kering</option>
                         <option value="basah">Basah</option>
                     </select>
                 </div>
-                <div>
-                    <label class="font-bold">Satuan Ukuran</label>
+                <div class="form-field">
+                    <label class="form-label" for="edit-ukuran">Satuan Ukuran *</label>
                     <input type="text" id="edit-ukuran" name="ukuran" required class="form-input">
                 </div>
             </div>
 
-            <div class="mt-2">
-                <label class="font-bold">Stok Aktual</label>
-                <input type="number" id="edit-qty-stok" name="qty_stok" required class="form-input">
+            <div class="form-field">
+                <label class="form-label" for="edit-qty-stok">Stok Aktual *</label>
+                <input type="number" id="edit-qty-stok" name="qty_stok" min="0" step="any" required class="form-input">
             </div>
+        </div>
 
-            <div class="flex justify-end gap-2 mt-4">
-                <button type="button" onclick="document.getElementById('modal-edit-material').classList.add('hidden')" class="btn btn-outline">Batal</button>
-                <button type="submit" class="btn btn-primary">Perbarui Master Bahan</button>
+        <div class="modal-foot">
+            <span>Perubahan langsung memperbarui status kritis</span>
+            <div class="acts">
+                <button type="button" class="btn outline" data-close>Batal</button>
+                <button type="submit" class="btn">Perbarui master bahan</button>
             </div>
-        </form>
-    </div>
-</div>
+        </div>
+    </form>
+</x-modal>
+@endsection
 
+@push('scripts')
 <script>
 const txDetailDataMap = @json($txDetailMap ?? []);
 
@@ -536,28 +403,9 @@ function formatRupiahNota(angka) {
     return 'Rp. ' + new Intl.NumberFormat('id-ID').format(Math.round(angka || 0));
 }
 
-function switchTab(tab) {
-    const btnStok = document.getElementById('tab-btn-stok');
-    const btnRiwayat = document.getElementById('tab-btn-riwayat');
-    const contentStok = document.getElementById('tab-content-stok');
-    const contentRiwayat = document.getElementById('tab-content-riwayat');
-
-    if (tab === 'stok') {
-        contentStok.classList.remove('hidden');
-        contentRiwayat.classList.add('hidden');
-        btnStok.classList.add('active');
-        btnRiwayat.classList.remove('active');
-    } else {
-        contentStok.classList.add('hidden');
-        contentRiwayat.classList.remove('hidden');
-        btnRiwayat.classList.add('active');
-        btnStok.classList.remove('active');
-    }
-}
-
 function openPurchaseModal() {
     recalcPurchaseSummary();
-    document.getElementById('modal-purchase').classList.remove('hidden');
+    openDialog('modal-purchase');
 }
 
 function onBahanSelectChange(selectEl) {
@@ -615,6 +463,7 @@ function recalcPurchaseSummary() {
 function addRow() {
     const tbody = document.getElementById('purchase-tbody');
     const firstRow = tbody.querySelector('tr.purchase-row');
+    if (!firstRow) return;
     const newRow = firstRow.cloneNode(true);
 
     const selectEl = newRow.querySelector('select[name="bahan_ids[]"]');
@@ -644,48 +493,74 @@ function showDetailGroup(groupKey) {
     document.getElementById('detail-waktu-transaksi').innerText = tx.waktu_transaksi;
     document.getElementById('detail-kode-transaksi').innerText = tx.kode_transaksi;
     document.getElementById('detail-nama-toko').innerText = tx.nama_toko;
-    document.getElementById('detail-total-item').innerText = tx.total_item + ' Jenis Bahan (' + new Intl.NumberFormat('id-ID').format(tx.total_qty) + ' Total Qty)';
+    document.getElementById('detail-total-item').innerText =
+        tx.total_item + ' Jenis Bahan (' + new Intl.NumberFormat('id-ID').format(tx.total_qty) + ' Total Qty)';
     document.getElementById('detail-total-harga').innerText = formatRupiahNota(tx.total_harga);
 
     const tbody = document.getElementById('detail-tbody');
     const tfoot = document.getElementById('detail-tfoot');
-    tbody.innerHTML = '';
-    tfoot.innerHTML = '';
+    tbody.textContent = '';
+    tfoot.textContent = '';
 
     tx.items.forEach((item, index) => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td class="text-center font-bold" style="color: #4b5563;">${index + 1}</td>
-            <td class="font-bold" style="color: var(--pc-dark);">${item.nama_bahan}</td>
-            <td class="text-center font-bold" style="color: var(--pc-dark);">${new Intl.NumberFormat('id-ID').format(item.qty)}</td>
-            <td class="text-center font-semibold" style="color: #4b5563;">${item.satuan}</td>
-            <td class="text-right font-semibold" style="color: #374151; white-space: nowrap;">${formatRupiahNota(item.harga_satuan)}</td>
-            <td class="text-right font-black" style="color: var(--pc-dark); white-space: nowrap;">${formatRupiahNota(item.total_harga)}</td>
-        `;
+
+        const tdNo = document.createElement('td');
+        tdNo.className = 'ctr';
+        tdNo.textContent = index + 1;
+
+        const tdNama = document.createElement('td');
+        const bNama = document.createElement('b');
+        bNama.textContent = item.nama_bahan;
+        tdNama.appendChild(bNama);
+
+        const tdQty = document.createElement('td');
+        tdQty.className = 'ctr';
+        tdQty.textContent = new Intl.NumberFormat('id-ID').format(item.qty);
+
+        const tdSatuan = document.createElement('td');
+        tdSatuan.className = 'ctr';
+        tdSatuan.textContent = item.satuan;
+
+        const tdHargaSatuan = document.createElement('td');
+        tdHargaSatuan.className = 'num';
+        tdHargaSatuan.textContent = formatRupiahNota(item.harga_satuan);
+
+        const tdTotal = document.createElement('td');
+        tdTotal.className = 'num';
+        const bTotal = document.createElement('b');
+        bTotal.textContent = formatRupiahNota(item.total_harga);
+        tdTotal.appendChild(bTotal);
+
+        tr.append(tdNo, tdNama, tdQty, tdSatuan, tdHargaSatuan, tdTotal);
         tbody.appendChild(tr);
     });
 
     if (tx.total_ongkir > 0) {
-        tfoot.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-right font-bold" style="color: #4b5563; font-size: 0.75rem; text-align: right;">Ongkos Kirim</td>
-                <td class="text-right font-bold" style="color: #4b5563; font-size: 0.75rem; text-align: right; white-space: nowrap;">${formatRupiahNota(tx.total_ongkir)}</td>
-            </tr>
-            <tr style="background-color: #fefce8;">
-                <td colspan="5" class="text-right font-black" style="color: var(--pc-dark); font-size: 0.8125rem; text-align: right;">Grand Total Pembelian</td>
-                <td class="text-right font-black" style="color: var(--pc-maroon); font-size: 0.875rem; text-align: right; white-space: nowrap;">${formatRupiahNota(tx.total_harga)}</td>
-            </tr>
-        `;
-    } else {
-        tfoot.innerHTML = `
-            <tr style="background-color: #fefce8;">
-                <td colspan="5" class="text-right font-black" style="color: var(--pc-dark); font-size: 0.8125rem; text-align: right;">Grand Total Pembelian</td>
-                <td class="text-right font-black" style="color: var(--pc-maroon); font-size: 0.875rem; text-align: right; white-space: nowrap;">${formatRupiahNota(tx.total_harga)}</td>
-            </tr>
-        `;
+        const trOngkir = document.createElement('tr');
+        const tdOngkirLbl = document.createElement('td');
+        tdOngkirLbl.colSpan = 5;
+        tdOngkirLbl.className = 'num';
+        tdOngkirLbl.textContent = 'Ongkos Kirim';
+        const tdOngkirVal = document.createElement('td');
+        tdOngkirVal.className = 'num';
+        tdOngkirVal.textContent = formatRupiahNota(tx.total_ongkir);
+        trOngkir.append(tdOngkirLbl, tdOngkirVal);
+        tfoot.appendChild(trOngkir);
     }
 
-    document.getElementById('modal-detail').classList.remove('hidden');
+    const trGrand = document.createElement('tr');
+    const tdGrandLbl = document.createElement('td');
+    tdGrandLbl.colSpan = 5;
+    tdGrandLbl.className = 'num';
+    tdGrandLbl.textContent = 'Grand Total Pembelian';
+    const tdGrandVal = document.createElement('td');
+    tdGrandVal.className = 'num';
+    tdGrandVal.textContent = formatRupiahNota(tx.total_harga);
+    trGrand.append(tdGrandLbl, tdGrandVal);
+    tfoot.appendChild(trGrand);
+
+    openDialog('modal-detail');
 }
 
 function editMaterial(id, nama, tipe, ukuran, stok) {
@@ -694,16 +569,17 @@ function editMaterial(id, nama, tipe, ukuran, stok) {
     document.getElementById('edit-tipe').value = tipe;
     document.getElementById('edit-ukuran').value = ukuran;
     document.getElementById('edit-qty-stok').value = stok;
-    document.getElementById('modal-edit-material').classList.remove('hidden');
+    openDialog('modal-edit-material');
 }
 
-// PERIKSA URL UNTUK OTOMATIS BUKA TAB RIWAYAT JIKA ADA FILTER PERIODE
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('periode')) {
-        switchTab('riwayat');
+        const panel = document.getElementById('panel-stok');
+        if (panel && window.activatePanelTab) {
+            window.activatePanelTab(panel, 'riwayat');
+        }
     }
 });
 </script>
-
-@endsection
+@endpush
