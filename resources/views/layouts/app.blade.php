@@ -79,6 +79,10 @@
             <a href="{{ route('shipments.index') }}" @if(request()->routeIs('shipments.*')) aria-current="page" @endif>
                 Pengiriman
             </a>
+
+            <a href="{{ route('reports.index') }}" @if(request()->routeIs('reports.*')) aria-current="page" @endif>
+                Laporan
+            </a>
         </nav>
 
         <div class="who">
