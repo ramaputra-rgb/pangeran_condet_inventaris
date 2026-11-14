@@ -4,9 +4,19 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>@yield('title', $title ?? 'Pangeran Condet, Dasbor')</title>
+    <script>
+        (function () {
+            try {
+                var theme = localStorage.getItem('pc-theme');
+                if (theme === 'dark' || theme === 'light') {
+                    document.documentElement.setAttribute('data-theme', theme);
+                }
+            } catch (e) {}
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Hanken+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/tokens.css') }}">
     <link rel="stylesheet" href="{{ asset('css/custom-style.css') }}">
 </head>
@@ -78,6 +88,10 @@
 
             <a href="{{ route('shipments.index') }}" @if(request()->routeIs('shipments.*')) aria-current="page" @endif>
                 Pengiriman
+            </a>
+
+            <a href="{{ route('settings.index') }}" @if(request()->routeIs('settings.*')) aria-current="page" @endif>
+                Pengaturan web
             </a>
         </nav>
 

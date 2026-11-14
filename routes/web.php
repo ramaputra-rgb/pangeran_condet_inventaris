@@ -12,6 +12,7 @@ use App\Http\Controllers\LogProduksiController;
 use App\Http\Controllers\PoProdukController;
 use App\Http\Controllers\ShipmentController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\WebSettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -92,5 +93,8 @@ Route::post('/raw-materials/purchase/destroy-group', [RawMaterialsController::cl
     // SPK & Serah Terima Hasil Produksi Dapur
     Route::post('/production-batch', [ProductionBatchController::class, 'store'])->name('production-batch.store');
     Route::patch('/production-batch/{id}/accept', [FinishedGoodsController::class, 'acceptBatch'])->name('production-batch.accept');
+
+    // Pengaturan Web (Mode Dark / Mode Light)
+    Route::get('/pengaturan-web', [WebSettingsController::class, 'index'])->name('settings.index');
 
 });

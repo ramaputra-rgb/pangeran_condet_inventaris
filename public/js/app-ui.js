@@ -326,8 +326,87 @@
     syncAria();
   }
 
+  var THEME_STORAGE_KEY = 'pc-theme';
+
+  function getEffectiveTheme() {
+    var attr = document.documentElement.getAttribute('data-theme');
+    if (attr === 'dark' || attr === 'light') return attr;
+
+    try {
+      var saved = localStorage.getItem(THEME_STORAGE_KEY);
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch (e) {}
+
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
+  }
+
+  function syncThemeUI() {
+    var active = getEffectiveTheme();
+
+    document.querySelectorAll('[data-theme-choice]').forEach(function (btn) {
+      var choice = btn.getAttribute('data-theme-choice');
+      var isSelected = choice === active;
+      btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+      btn.classList.toggle('is-active', isSelected);
+
+      var badge = btn.querySelector('[data-theme-badge]');
+      if (badge) {
+        badge.textContent = isSelected ? 'Sedang aktif' : 'Pilih mode';
+      }
+    });
+
+    document.querySelectorAll('[data-theme-status]').forEach(function (el) {
+      el.textContent = active === 'dark' ? 'Aktif: Mode Dark' : 'Aktif: Mode Light';
+    });
+  }
+
+  function applyTheme(mode) {
+    if (mode !== 'dark' && mode !== 'light') return;
+
+    document.documentElement.setAttribute('data-theme', mode);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, mode);
+    } catch (e) {}
+    syncThemeUI();
+  }
+
+  window.applyTheme = applyTheme;
+
+  function initThemeSettings() {
+    document.querySelectorAll('[data-theme-choice]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        applyTheme(btn.getAttribute('data-theme-choice'));
+      });
+    });
+
+    window.addEventListener('storage', function (e) {
+      if (e.key === THEME_STORAGE_KEY && (e.newValue === 'dark' || e.newValue === 'light')) {
+        document.documentElement.setAttribute('data-theme', e.newValue);
+        syncThemeUI();
+      }
+    });
+
+    if (window.matchMedia) {
+      var colorMq = window.matchMedia('(prefers-color-scheme: dark)');
+      var onMediaChange = function () {
+        syncThemeUI();
+      };
+      if (typeof colorMq.addEventListener === 'function') {
+        colorMq.addEventListener('change', onMediaChange);
+      } else if (typeof colorMq.addListener === 'function') {
+        colorMq.addListener(onMediaChange);
+      }
+    }
+
+    syncThemeUI();
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     initMobileNav();
+    initThemeSettings();
     initDialogs();
     initPanels();
     initFilterBoxes();

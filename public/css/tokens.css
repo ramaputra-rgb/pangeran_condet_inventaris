@@ -11,6 +11,8 @@
    ========================================================================== */
 
 :root {
+  color-scheme: light;
+
   /* ------------------------------------------------------------------------
      1. Semantic Color Tokens (Light Mode — Warm Editorial Craft Palette)
      ------------------------------------------------------------------------ */
@@ -58,6 +60,10 @@
   --color-success-soft: rgba(63, 107, 58, 0.12);
   --color-danger-soft: rgba(184, 67, 43, 0.12);
   --color-warning-soft: rgba(176, 106, 44, 0.14);
+  --color-chip-active-border: var(--color-primary);
+  --color-chart-proses: #7A4527;
+  --color-chart-ready: #C88A36;
+  --color-chart-shipped: #4D7C8A;
 
   /* Reference Shorthand Token Aliases (mapped directly to semantic tokens) */
   --bg: var(--color-background);
@@ -76,8 +82,8 @@
   /* ------------------------------------------------------------------------
      2. Typography Tokens
      ------------------------------------------------------------------------ */
-  --font-display: "Young Serif", Georgia, "Times New Roman", serif;
-  --font-body: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
   --display: var(--font-display);
   --body: var(--font-body);
 
@@ -94,6 +100,7 @@
 
   --font-weight-regular: 400;
   --font-weight-medium: 500;
+  --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
   --line-height-tight: 1.05;
@@ -152,6 +159,7 @@
    ========================================================================== */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --color-background: #1A110C;
     --color-surface: #261913;
     --color-text-primary: #F1E6D6;
@@ -161,15 +169,28 @@
     --color-primary-hover: #85482B;
     --color-accent: #E0A062;
     --color-success: #9CCB86;
+    --color-warning: #E0A062;
     --color-danger-text: #F07C63;
     --color-info: #E0A062;
     --color-success-soft: rgba(156, 203, 134, 0.14);
     --color-danger-soft: rgba(240, 124, 99, 0.15);
     --color-warning-soft: rgba(224, 160, 98, 0.16);
+    --color-chip-active-border: #E0A062;
+    --color-chart-proses: #B86B43;
+    --color-chart-ready: #D9A14A;
+    --color-chart-shipped: #6AA2B0;
+    --color-backdrop: rgba(10, 6, 4, 0.74);
+    --shadow-topbar: 0 4px 16px rgba(0, 0, 0, 0.45);
+    --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.65);
   }
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --color-background: #1A110C;
   --color-surface: #261913;
   --color-text-primary: #F1E6D6;
@@ -179,9 +200,17 @@
   --color-primary-hover: #85482B;
   --color-accent: #E0A062;
   --color-success: #9CCB86;
+  --color-warning: #E0A062;
   --color-danger-text: #F07C63;
   --color-info: #E0A062;
   --color-success-soft: rgba(156, 203, 134, 0.14);
   --color-danger-soft: rgba(240, 124, 99, 0.15);
   --color-warning-soft: rgba(224, 160, 98, 0.16);
+  --color-chip-active-border: #E0A062;
+  --color-chart-proses: #B86B43;
+  --color-chart-ready: #D9A14A;
+  --color-chart-shipped: #6AA2B0;
+  --color-backdrop: rgba(10, 6, 4, 0.74);
+  --shadow-topbar: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.65);
 }

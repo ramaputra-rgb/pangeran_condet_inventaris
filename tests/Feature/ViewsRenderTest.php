@@ -43,6 +43,9 @@ class ViewsRenderTest extends TestCase
         $response->assertDontSee('Pantau stok bahan baku dapur, susun prioritas Purchase Order, input hasil QC per batch, dan terbitkan Surat Jalan dengan rapi.');
         $response->assertSee('Username atau Email');
         $response->assertSee('Kata Sandi');
+        $response->assertSee('Poppins');
+        $response->assertDontSee('Young Serif');
+        $response->assertDontSee('Hanken Grotesk');
         $response->assertSee('tokens.css');
         $response->assertSee('custom-style.css');
     }
@@ -58,14 +61,34 @@ class ViewsRenderTest extends TestCase
             '/po-produk',
             '/log-produksi',
             '/shipments',
+            '/pengaturan-web',
         ] as $uri) {
             $response = $this->actingAs($user)->get($uri);
             $response->assertStatus(200);
+            $response->assertSee('Poppins');
+            $response->assertDontSee('Young Serif');
+            $response->assertDontSee('Hanken Grotesk');
+            $response->assertSee('Pengaturan web');
             $response->assertSee('tokens.css');
             $response->assertSee('app-ui.js');
             $response->assertSee('data-nav-toggle', false);
             $response->assertSee('id="app-sidebar"', false);
         }
+    }
+
+    public function test_web_settings_page_requires_auth_and_shows_light_and_dark_modes(): void
+    {
+        $this->get('/pengaturan-web')->assertRedirect('/login');
+
+        $user = $this->makeOwner();
+        $response = $this->actingAs($user)->get('/pengaturan-web');
+
+        $response->assertStatus(200);
+        $response->assertSee('Pengaturan web');
+        $response->assertSee('Mode Light');
+        $response->assertSee('Mode Dark');
+        $response->assertSee('data-theme-choice="light"', false);
+        $response->assertSee('data-theme-choice="dark"', false);
     }
 
     public function test_all_primary_authenticated_views_render_cleanly_with_populated_records(): void
