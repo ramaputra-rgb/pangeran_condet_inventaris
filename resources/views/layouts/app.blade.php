@@ -90,6 +90,10 @@
                 Pengiriman
             </a>
 
+            <a href="{{ route('reports.index') }}" @if(request()->routeIs('reports.*')) aria-current="page" @endif>
+                Laporan
+            </a>
+
             <a href="{{ route('settings.index') }}" @if(request()->routeIs('settings.*')) aria-current="page" @endif>
                 Pengaturan web
             </a>

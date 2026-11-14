@@ -203,6 +203,13 @@ class ViewsRenderTest extends TestCase
 
         $this->actingAs($user)->get('/dashboard')
             ->assertStatus(200)
+            ->assertSee('Dasbor grafik operasional')
+            ->assertSee('Tren PO &amp; output produksi', false)
+            ->assertSee('Distribusi status PO')
+            ->assertSee('Permintaan PO vs stok jadi')
+            ->assertSee('Stok bahan baku terendah')
+            ->assertSee('dashboard-charts.js')
+            ->assertDontSee('<ol class="line"', false)
             ->assertSee('Beras Ketan Super')
             ->assertSee('Toko Berkah');
 
@@ -236,8 +243,9 @@ class ViewsRenderTest extends TestCase
         $user = $this->makeOwner();
         $this->be($user);
 
-        $this->view('reports.index', [
+        $this->view('reports', [
             'logCetakList' => collect(),
+            'previewActive' => false,
         ])->assertSee('Pusat laporan operasional');
 
         $this->view('production.bom_recipes', [

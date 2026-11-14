@@ -3,78 +3,173 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\LogCetakLaporan;
 use App\Models\TransaksiBeliBahan;
 use App\Models\LogProduksi;
 use App\Models\PoProduk;
 use App\Models\ProdukJadi;
-use Illuminate\Support\Facades\DB;
+use App\Models\LogPengiriman;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\File;
 
 class ReportController extends Controller
 {
     /**
-     * Menampilkan Halaman / Frame Menu Laporan
+     * Lokasi penyimpanan file JSON riwayat cetak laporan
      */
-    public function index()
+    private function getLogFilePath(): string
     {
-        // Ambil riwayat log cetak laporan untuk audit trail
-        $logCetakList = LogCetakLaporan::latest()->get();
-
-        return view('reports.index', compact('logCetakList'));
+        return storage_path('app/log_cetak_laporan.json');
     }
 
     /**
-     * Filter & Proses Cetak Laporan (Sesuai Activity Diagram Hal. 11)
+     * Membaca seluruh riwayat cetak dari file JSON sebagai Collection of Objects
+     */
+    private function readPrintLogs(): Collection
+    {
+        $path = $this->getLogFilePath();
+
+        if (!File::exists($path)) {
+            return collect();
+        }
+
+        $decoded = json_decode(File::get($path), true);
+
+        if (!is_array($decoded)) {
+            return collect();
+        }
+
+        return collect($decoded)
+            ->map(fn ($item) => (object) $item)
+            ->sortByDesc(fn ($item) => ($item->tgl_cetak ?? '') . '_' . str_pad((string) ($item->id_log_cetak ?? 0), 8, '0', STR_PAD_LEFT))
+            ->values();
+    }
+
+    /**
+     * Menambahkan catatan cetak baru ke file JSON
+     */
+    private function appendPrintLog(string $jenis, ?string $mulai, ?string $selesai): object
+    {
+        $path = $this->getLogFilePath();
+        $existing = [];
+
+        if (File::exists($path)) {
+            $decoded = json_decode(File::get($path), true);
+            if (is_array($decoded)) {
+                $existing = $decoded;
+            }
+        }
+
+        $maxId = collect($existing)->max('id_log_cetak') ?? 0;
+
+        $kriteria = $jenis === 'stok'
+            ? 'Posisi Stok Aktual'
+            : 'Periode: ' . $mulai . ' s/d ' . $selesai;
+
+        $newRecord = [
+            'id_log_cetak'    => $maxId + 1,
+            'jenis_laporan'   => $jenis,
+            'kriteria_filter' => $kriteria,
+            'tgl_cetak'       => now()->toDateTimeString(),
+            'status_cetak'    => 'BERHASIL',
+        ];
+
+        $existing[] = $newRecord;
+
+        File::ensureDirectoryExists(dirname($path));
+        File::put($path, json_encode($existing, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        return (object) $newRecord;
+    }
+
+    /**
+     * Menampilkan Halaman Utama Laporan & Audit Log Cetak
+     */
+    public function index()
+    {
+        $logCetakList = $this->readPrintLogs();
+
+        return view('reports', [
+            'logCetakList'  => $logCetakList,
+            'previewActive' => false,
+        ]);
+    }
+
+    /**
+     * Filter, Catat Log Audit ke JSON, & Tampilkan Pratinjau Cetak
      */
     public function previewOrPrint(Request $request)
     {
         $request->validate([
-            'jenis_laporan' => 'required|string', // e.g., 'stok', 'pengadaan', 'produksi', 'penjualan'
-            'periode_mulai' => 'nullable|date',
-            'periode_selesai' => 'nullable|date',
+            'jenis_laporan'   => 'required|in:stok,pengadaan,produksi,penjualan,pengiriman',
+            'periode_mulai'   => 'required_unless:jenis_laporan,stok|nullable|date',
+            'periode_selesai' => 'required_unless:jenis_laporan,stok|nullable|date|after_or_equal:periode_mulai',
+        ], [
+            'periode_mulai.required_unless'   => 'Tanggal mulai wajib diisi untuk laporan transaksi.',
+            'periode_selesai.required_unless' => 'Tanggal selesai wajib diisi untuk laporan transaksi.',
+            'periode_selesai.after_or_equal'  => 'Tanggal selesai tidak boleh lebih awal dari tanggal mulai.',
         ]);
 
-        $jenis = $request->jenis_laporan;
-        $mulai = $request->periode_mulai;
-        $selesai = $request->periode_selesai;
+        $jenis   = $request->jenis_laporan;
+        $mulai   = $jenis === 'stok' ? null : $request->periode_mulai;
+        $selesai = $jenis === 'stok' ? null : $request->periode_selesai;
 
-        $dataLaporan = [];
+        $judulMap = [
+            'stok'       => 'Laporan Stok & Varian Produk Jadi',
+            'pengadaan'  => 'Laporan Pengadaan & Pembelian Bahan Baku',
+            'produksi'   => 'Laporan Log Produksi & QC Dapur',
+            'penjualan'  => 'Laporan Purchase Order & Penjualan Pelanggan',
+            'pengiriman' => 'Laporan Log Pengiriman & Surat Jalan',
+        ];
 
-        // Mengambil data berdasarkan sub-laporan yang dipilih
+        $judulLaporan = $judulMap[$jenis] ?? 'Laporan Operasional';
+        $dataLaporan  = collect();
+
         if ($jenis === 'stok') {
             $dataLaporan = ProdukJadi::all();
         } elseif ($jenis === 'pengadaan') {
-            $query = TransaksiBeliBahan::with('bahanProduksi');
-            if ($mulai && $selesai) {
-                $query->whereBetween('created_at', [$mulai . ' 00:00:00', $selesai . ' 23:59:59']);
-            }
-            $dataLaporan = $query->get();
+            $dataLaporan = TransaksiBeliBahan::with('bahanProduksi')
+                ->whereBetween('created_at', [$mulai . ' 00:00:00', $selesai . ' 23:59:59'])
+                ->latest()
+                ->get();
         } elseif ($jenis === 'produksi') {
-            $query = LogProduksi::with(['poProduk', 'detailProduksi.produkJadi']);
-            if ($mulai && $selesai) {
-                $query->whereBetween('tgl_produksi', [$mulai, $selesai]);
-            }
-            $dataLaporan = $query->get();
+            $dataLaporan = LogProduksi::with(['poProduk', 'detailProduksi.produkJadi'])
+                ->whereBetween('tgl_produksi', [$mulai, $selesai])
+                ->latest('tgl_produksi')
+                ->get();
         } elseif ($jenis === 'penjualan') {
-            $query = PoProduk::with('detailAlokasi.produkJadi');
-            if ($mulai && $selesai) {
-                $query->whereBetween('tgl_po', [$mulai, $selesai]);
-            }
-            $dataLaporan = $query->get();
+            $dataLaporan = PoProduk::with('detailAlokasi.produkJadi')
+                ->whereBetween('tgl_po', [$mulai, $selesai])
+                ->latest('tgl_po')
+                ->get();
+        } elseif ($jenis === 'pengiriman') {
+            $dataLaporan = LogPengiriman::with(['poProduk.suratJalan'])
+                ->where(function ($q) use ($mulai, $selesai) {
+                    $q->whereBetween('Tanggal', [$mulai, $selesai])
+                      ->orWhere(function ($q2) use ($mulai, $selesai) {
+                          $q2->whereNull('Tanggal')
+                             ->whereBetween('created_at', [$mulai . ' 00:00:00', $selesai . ' 23:59:59']);
+                      });
+                })
+                ->orderByDesc('Tanggal')
+                ->latest()
+                ->get();
         }
 
-        DB::transaction(function () use ($jenis, $mulai, $selesai) {
-            // Menyimpan data ke Database (Log Cetak Laporan - Activity Diagram Hal. 11)
-            LogCetakLaporan::create([
-                'jenis_laporan' => $jenis,
-                'kriteria_filter' => 'Periode: ' . ($mulai ?? 'Semua') . ' s/d ' . ($selesai ?? 'Semua'),
-                'tgl_cetak' => now(),
-                'status_cetak' => 'BERHASIL',
-            ]);
-        });
+        // Simpan log cetak ke file JSON
+        $logBaru = $this->appendPrintLog($jenis, $mulai, $selesai);
 
-        // Mengembalikan tampilan pratinjau cetak laporan
-        return view('reports.preview', compact('jenis', 'dataLaporan', 'mulai', 'selesai'))
-                 ->with('success', 'Laporan Berhasil Dicetak & Log Tercatat!');
+        // Baca ulang daftar log terbaru
+        $logCetakList = $this->readPrintLogs();
+
+        return view('reports', [
+            'logCetakList'  => $logCetakList,
+            'previewActive' => true,
+            'jenis'         => $jenis,
+            'judulLaporan'  => $judulLaporan,
+            'dataLaporan'   => $dataLaporan,
+            'mulai'         => $mulai,
+            'selesai'       => $selesai,
+            'logAktif'      => $logBaru,
+        ]);
     }
 }

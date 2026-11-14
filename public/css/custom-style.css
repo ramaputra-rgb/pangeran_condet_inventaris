@@ -994,6 +994,10 @@ h2 {
   margin-top: var(--space-7);
 }
 
+.panel.is-flush {
+  margin-top: 0;
+}
+
 .tabs {
   display: flex;
   gap: 6px;
@@ -1145,6 +1149,18 @@ h2 {
 
 .row.batch-row {
   grid-template-columns: minmax(150px, 1.1fr) minmax(180px, 1.5fr) 128px 132px auto;
+}
+
+.row.batch-compact {
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+}
+
+.batch-compact-right {
+  text-align: right;
+  display: grid;
+  gap: 4px;
+  justify-items: end;
 }
 
 .row.ship {
@@ -2706,6 +2722,12 @@ dialog.modal::backdrop {
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.chart-head > div {
+  min-width: 0;
+  flex: 1 1 200px;
 }
 
 .chart-head .sub {
