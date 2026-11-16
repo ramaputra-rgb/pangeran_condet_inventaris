@@ -8,6 +8,7 @@ use App\Models\DetailProduksi;
 use App\Models\PoProduk;
 use App\Models\ProdukJadi;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class LogProduksiController extends Controller
 {
@@ -136,6 +137,52 @@ class LogProduksiController extends Controller
 
         $request->validate($rules);
 
+        if ($mode === 'po') {
+            $poForCheck = PoProduk::with(['detailAlokasi.produkJadi', 'logProduksi.detailProduksi'])
+                ->findOrFail($request->no_po_produk);
+
+            if ($poForCheck->detailAlokasi->isNotEmpty()) {
+                $hasilGorengPerProduk = [];
+                foreach ($poForCheck->logProduksi as $existingLog) {
+                    if (strtoupper((string) $existingLog->status_approval) === 'APPROVED') {
+                        foreach ($existingLog->detailProduksi as $det) {
+                            $hasilGorengPerProduk[$det->id_produk_jadi] = ($hasilGorengPerProduk[$det->id_produk_jadi] ?? 0) + (int) $det->jml_produk_jadi;
+                        }
+                    }
+                }
+
+                $submittedByProduct = [];
+                foreach ($request->produk_ids as $index => $idProduk) {
+                    $prodId = (int) $idProduk;
+                    $qty = (int) ($request->produk_qty[$index] ?? 0);
+                    if ($prodId > 0 && $qty > 0) {
+                        $submittedByProduct[$prodId] = ($submittedByProduct[$prodId] ?? 0) + $qty;
+                    }
+                }
+
+                $requiredByProduct = [];
+                $productNames = [];
+                foreach ($poForCheck->detailAlokasi as $alokasi) {
+                    $prodId = (int) $alokasi->id_produk_jadi;
+                    $requiredByProduct[$prodId] = ($requiredByProduct[$prodId] ?? 0) + (int) $alokasi->jml_alokasi;
+                    $productNames[$prodId] = $alokasi->produkJadi->nama_produk ?? ('Produk #' . $prodId);
+                }
+
+                foreach ($requiredByProduct as $prodId => $targetQty) {
+                    $sudahGoreng = (int) ($hasilGorengPerProduk[$prodId] ?? 0);
+                    $sisaQty = max(0, $targetQty - $sudahGoreng);
+                    $minQty = $sisaQty > 0 ? $sisaQty : $targetQty;
+                    $submittedQty = (int) ($submittedByProduct[$prodId] ?? 0);
+
+                    if ($submittedQty < $minQty) {
+                        throw ValidationException::withMessages([
+                            'produk_qty' => "Ditolak! Target qty {$productNames[$prodId]} dikunci sesuai pesanan PO minimal {$minQty} pcs dan tidak boleh diturunkan.",
+                        ]);
+                    }
+                }
+            }
+        }
+
         DB::transaction(function () use ($request, $mode) {
             $noPoProduk = null;
 
@@ -171,7 +218,7 @@ class LogProduksiController extends Controller
             $log = LogProduksi::create([
                 'no_po_produk'    => $noPoProduk,
                 'tgl_produksi'    => $request->tgl_produksi,
-                'waktu_produksi'  => $request->waktu_produksi ?? 'Shift Pagi',
+                'waktu_produksi'  => $request->filled('waktu_produksi') ? $request->waktu_produksi : null,
                 'rentang_tgl_exp' => $request->rentang_tgl_exp ?? date('Y-m-d', strtotime('+3 months')),
                 'jml_grade_A'     => 0,
                 'jml_grade_B'     => 0,

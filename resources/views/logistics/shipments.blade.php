@@ -19,7 +19,6 @@
     <div>
         <span class="eyebrow">Logistik &amp; serah terima</span>
         <h1 id="j-kirim">Surat Jalan &amp; pelacakan kirim</h1>
-        <p>Terbitkan Surat Jalan untuk PO yang stoknya sudah dipotong, pantau paket dalam perjalanan, dan arsipkan bukti serah terima barang.</p>
     </div>
     <div class="acts">
         <button type="button" class="btn" onclick="openDialog('modal-create-sj')">+ Terbitkan Surat Jalan</button>

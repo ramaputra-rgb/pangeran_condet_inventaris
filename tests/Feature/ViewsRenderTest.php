@@ -73,6 +73,7 @@ class ViewsRenderTest extends TestCase
             $response->assertSee('app-ui.js');
             $response->assertSee('data-nav-toggle', false);
             $response->assertSee('id="app-sidebar"', false);
+            $response->assertSee('class="nav-icon"', false);
         }
     }
 
@@ -204,6 +205,9 @@ class ViewsRenderTest extends TestCase
         $this->actingAs($user)->get('/dashboard')
             ->assertStatus(200)
             ->assertSee('Dasbor grafik operasional')
+            ->assertSee('stub-icon', false)
+            ->assertSee('chart-icon', false)
+            ->assertSee('section-icon', false)
             ->assertSee('Tren PO &amp; output produksi', false)
             ->assertSee('Distribusi status PO')
             ->assertSee('Permintaan PO vs stok jadi')
@@ -230,7 +234,11 @@ class ViewsRenderTest extends TestCase
         $this->actingAs($user)->get('/log-produksi')
             ->assertStatus(200)
             ->assertSee('Toko Berkah')
-            ->assertSee('Shift Pagi');
+            ->assertSee('Shift Pagi')
+            ->assertDontSee('Shift Produksi')
+            ->assertDontSee('id="batch-shift"', false)
+            ->assertDontSee('name="waktu_produksi"', false)
+            ->assertDontSee('Batch &amp; Shift', false);
 
         $this->actingAs($user)->get('/shipments')
             ->assertStatus(200)
@@ -263,5 +271,47 @@ class ViewsRenderTest extends TestCase
             'spkSelesaiCount' => 0,
             'totalTargetBatch' => 0,
         ])->assertSee('Perintah kerja penggorengan');
+    }
+
+    public function test_log_produksi_store_creates_batch_without_shift_produksi(): void
+    {
+        $user = $this->makeOwner();
+
+        $produk = ProdukJadi::create([
+            'nama_produk' => 'Rengginang Udang',
+            'varian' => '100g',
+            'netto' => '100g',
+            'harga_jual' => 15000,
+            'stok' => 0,
+        ]);
+
+        $po = PoProduk::create([
+            'nama_pelanggan' => 'Pelanggan Uji',
+            'nama_penerima' => 'Pelanggan Uji',
+            'tipe_jual' => 'Manual',
+            'jumlah_po' => 25,
+            'tgl_po' => now()->toDateString(),
+            'tgl_jatuh_tempo_po' => now()->addDays(2)->toDateString(),
+            'status_po' => 'PENDING',
+            'alamat_pelanggan' => 'Condet',
+            'sumber_transaksi' => 'MANUAL',
+        ]);
+
+        $response = $this->actingAs($user)->post('/log-produksi/store', [
+            'mode_produksi' => 'po',
+            'no_po_produk' => $po->no_po_produk,
+            'tgl_produksi' => now()->toDateString(),
+            'produk_ids' => [$produk->id_produk_jadi],
+            'produk_qty' => [25],
+            'ket' => 'Tanpa shift',
+        ]);
+
+        $response->assertRedirect(route('log-produksi.index'));
+
+        $this->assertDatabaseHas('log_produksi', [
+            'no_po_produk' => $po->no_po_produk,
+            'waktu_produksi' => null,
+            'ket' => 'Tanpa shift',
+        ]);
     }
 }

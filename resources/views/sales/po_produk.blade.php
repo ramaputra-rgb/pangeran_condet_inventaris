@@ -500,7 +500,6 @@
                         <option value="Jual Putus">Jual Putus</option>
                         <option value="Reseller">Reseller</option>
                         <option value="Eceran">Eceran</option>
-                        <option value="E-Commerce">E-Commerce</option>
                     </select>
                 </div>
                 <div class="form-field">

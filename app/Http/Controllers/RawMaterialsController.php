@@ -7,6 +7,7 @@ use App\Models\BahanProduksi;
 use App\Models\TransaksiBeliBahan;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class RawMaterialsController extends Controller
 {
@@ -104,23 +105,25 @@ class RawMaterialsController extends Controller
      */
     public function storeMaterial(Request $request)
     {
+        $normalizedName = BahanProduksi::normalizeName($request->input('nama_bahan'));
+        $request->merge(['nama_bahan' => $normalizedName]);
+
         $request->validate([
-            'nama_bahan' => 'required|string|max:255',
-            'tipe'       => 'required|string',
-            'ukuran'     => 'required|string',
-            'qty_stok'   => 'required|numeric|min:0',
+            'nama_bahan' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('bahan_produksi', 'nama_bahan'),
+            ],
+            'tipe'     => 'required|string',
+            'ukuran'   => 'required|string',
+            'qty_stok' => 'required|numeric|min:0',
+        ], [
+            'nama_bahan.unique' => 'Data Sudah Terdaftar! Bahan baku "' . BahanProduksi::formatDisplayName($normalizedName) . '" sudah ada di sistem.',
         ]);
 
-        $existing = BahanProduksi::where('nama_bahan', trim($request->nama_bahan))
-            ->where('ukuran', trim($request->ukuran))
-            ->first();
-
-        if ($existing) {
-            return redirect()->back()->with('error', 'Data Sudah Terdaftar! Bahan baku dengan nama dan satuan ukuran tersebut sudah ada di sistem.');
-        }
-
         BahanProduksi::create([
-            'nama_bahan' => trim($request->nama_bahan),
+            'nama_bahan' => $normalizedName,
             'tipe'       => $request->tipe,
             'ukuran'     => trim($request->ukuran),
             'qty_stok'   => $request->qty_stok,
@@ -135,26 +138,27 @@ class RawMaterialsController extends Controller
      */
     public function updateMaterial(Request $request, $id)
     {
-        $request->validate([
-            'nama_bahan' => 'required|string|max:255',
-            'tipe'       => 'required|string',
-            'ukuran'     => 'required|string',
-            'qty_stok'   => 'required|numeric|min:0',
-        ]);
-
         $bahan = BahanProduksi::findOrFail($id);
 
-        $existing = BahanProduksi::where('nama_bahan', trim($request->nama_bahan))
-            ->where('ukuran', trim($request->ukuran))
-            ->where('id_bahan', '!=', $id)
-            ->first();
+        $normalizedName = BahanProduksi::normalizeName($request->input('nama_bahan'));
+        $request->merge(['nama_bahan' => $normalizedName]);
 
-        if ($existing) {
-            return redirect()->back()->with('error', 'Data Sudah Terdaftar! Kombinasi nama dan ukuran bahan baku telah digunakan item lain.');
-        }
+        $request->validate([
+            'nama_bahan' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('bahan_produksi', 'nama_bahan')->ignore($bahan->id_bahan, 'id_bahan'),
+            ],
+            'tipe'     => 'required|string',
+            'ukuran'   => 'required|string',
+            'qty_stok' => 'required|numeric|min:0',
+        ], [
+            'nama_bahan.unique' => 'Data Sudah Terdaftar! Nama bahan baku "' . BahanProduksi::formatDisplayName($normalizedName) . '" telah digunakan oleh item lain.',
+        ]);
 
         $bahan->update([
-            'nama_bahan' => trim($request->nama_bahan),
+            'nama_bahan' => $normalizedName,
             'tipe'       => $request->tipe,
             'ukuran'     => trim($request->ukuran),
             'qty_stok'   => $request->qty_stok,

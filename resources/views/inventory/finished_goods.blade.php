@@ -26,7 +26,6 @@
     <div>
         <span class="eyebrow">Produk jadi</span>
         <h1 id="j-produk">Stok produk siap jual &amp; histori audit</h1>
-        <p>Pantau stok fisik gudang, kuota bebas untuk dijual (ATP) setelah dipotong PO aktif, serta lakukan penyesuaian stok manual dengan jejak audit.</p>
     </div>
     <div class="acts">
         <button type="button" class="btn" onclick="openDialog('modal-create-fg')">Tambah produk baru</button>
@@ -36,20 +35,20 @@
 <section class="stub-grid" aria-label="Ringkasan produk jadi">
     <x-stub-card
         title="Total varian aktif"
-        subtitle="SKU terdaftar di katalog"
+        subtitle=""
         :value="number_format($totalVarian ?? $products->count())"
         unit="varian"
     />
     <x-stub-card
         title="Stok fisik gudang"
-        subtitle="Nilai aset Rp {{ number_format($totalNilaiAset ?? 0, 0, ',', '.') }}"
+        subtitle=""
         :value="number_format($totalStokFisik ?? 0)"
         unit="pcs fisik"
         variant="warm"
     />
     <x-stub-card
         title="Terkunci alokasi PO"
-        subtitle="Bebas dijual: {{ number_format(max(0, ($totalStokFisik ?? 0) - ($totalAlokasiPo ?? 0))) }} pcs"
+        subtitle=""
         :value="number_format($totalAlokasiPo ?? 0)"
         unit="pcs terkunci"
         :variant="($totalAlokasiPo ?? 0) > 0 ? 'alert' : null"

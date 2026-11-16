@@ -39,7 +39,6 @@
         $batchModalMap[(string) $log->no_batch] = [
             'kode' => $kodeBatch,
             'tanggal' => $log->tgl_produksi ? \Carbon\Carbon::parse($log->tgl_produksi)->format('d M Y') : '-',
-            'shift' => (string) ($log->waktu_produksi ?: '-'),
             'po_kode' => $log->no_po_produk ? ('PO-' . str_pad($log->no_po_produk, 4, '0', STR_PAD_LEFT)) : 'Stok Gudang',
             'pelanggan' => $log->poProduk ? (string) $log->poProduk->nama_pelanggan : 'Produksi Stok Gudang',
             'is_done' => $isSelesaiQc,
@@ -54,17 +53,29 @@
 
     $poBatchUiMap = [];
     foreach ($poList as $po) {
+        $mappedPo = $poDataMap[$po->no_po_produk] ?? null;
         $poItems = [];
-        foreach ($po->detailAlokasi as $alok) {
-            $prod = $alok->produkJadi;
-            $stokAtp = $prod ? (int) $prod->stok_atp : 0;
-            $needed = (int) $alok->jml_alokasi;
-            $poItems[] = [
-                'id_produk_jadi' => (int) $alok->id_produk_jadi,
-                'nama' => $prod ? ($prod->nama_produk . ' (' . $prod->varian . ')') : ('Produk #' . $alok->id_produk_jadi),
-                'qty' => $needed,
-                'stok_atp' => $stokAtp,
-            ];
+        if ($mappedPo && ! empty($mappedPo['items'])) {
+            foreach ($mappedPo['items'] as $poItem) {
+                $poItems[] = [
+                    'id_produk_jadi' => (int) $poItem['id_produk_jadi'],
+                    'nama' => (string) $poItem['nama_produk'],
+                    'qty' => (int) $poItem['qty_default'],
+                    'stok_atp' => (int) $poItem['stok_gudang'],
+                ];
+            }
+        } else {
+            foreach ($po->detailAlokasi as $alok) {
+                $prod = $alok->produkJadi;
+                $stokAtp = $prod ? (int) $prod->stok_atp : 0;
+                $needed = (int) $alok->jml_alokasi;
+                $poItems[] = [
+                    'id_produk_jadi' => (int) $alok->id_produk_jadi,
+                    'nama' => $prod ? ($prod->nama_produk . ' (' . $prod->varian . ')') : ('Produk #' . $alok->id_produk_jadi),
+                    'qty' => $needed,
+                    'stok_atp' => $stokAtp,
+                ];
+            }
         }
         $poBatchUiMap[(string) $po->no_po_produk] = [
             'kode' => 'PO-' . str_pad($po->no_po_produk, 4, '0', STR_PAD_LEFT),
@@ -78,7 +89,6 @@
 <section class="hero sm" aria-labelledby="j-produksi">
     <div>
         <h1 id="j-produksi">Jadwal batch goreng &amp; kontrol kualitas</h1>
-        <p>Pantau batch produksi yang sedang digoreng, input hasil Grade A dan Grade B setelah pengemasan, atau jadwalkan batch baru untuk PO maupun stok gudang.</p>
         <div class="acts">
             <button type="button" class="btn" onclick="openBatchModal('po')">+ Jadwalkan batch PO</button>
             <button type="button" class="btn ghost" onclick="openBatchModal('stok_gudang')">+ Batch stok gudang</button>
@@ -120,7 +130,7 @@
                 type="search"
                 class="field grow"
                 data-search
-                placeholder="Cari nomor batch, kode PO, pelanggan, shift, atau produk..."
+                placeholder="Cari nomor batch, kode PO, pelanggan, atau produk..."
                 aria-label="Cari batch produksi"
             >
             <button type="button" class="reset-btn" data-reset>Reset</button>
@@ -154,7 +164,7 @@
                         @if($loop->index >= 6) data-more="1" hidden @endif>
                         <div>
                             <b>{{ $kodeBatch }}</b>
-                            <small>{{ $log->tgl_produksi ? \Carbon\Carbon::parse($log->tgl_produksi)->format('d M Y') : '-' }} &middot; {{ $log->waktu_produksi ?? '-' }}</small>
+                            <small>{{ $log->tgl_produksi ? \Carbon\Carbon::parse($log->tgl_produksi)->format('d M Y') : '-' }}@if($log->waktu_produksi) &middot; {{ $log->waktu_produksi }}@endif</small>
                             <div class="tags">
                                 @if($log->poProduk)
                                     <span class="tag ok">{{ $kodePo }}</span>
@@ -237,7 +247,7 @@
             <li class="row guide mid">
                 <div>
                     <b>2. Proses goreng dapur</b>
-                    <small>Shift Pagi / Siang / Sore</small>
+                    <small>Pantauan dapur hingga QC</small>
                 </div>
                 <div>
                     <b>Batch berstatus Sedang digoreng hingga tim QC menimbang hasil.</b>
@@ -264,7 +274,7 @@
 <x-modal
     id="modal-log-produksi"
     title="Jadwalkan batch produksi"
-    subtitle="Pilih mode PO pelanggan atau stok bebas gudang, lalu tentukan shift dan target qty."
+    subtitle=""
     :wide="true"
 >
     <form action="{{ route('log-produksi.store') }}" method="POST" id="form-batch-store">
@@ -305,25 +315,16 @@
                 </div>
             </div>
 
-            <div class="form-grid two">
-                <div class="form-field">
-                    <label class="form-label" for="batch-shift">Shift Produksi *</label>
-                    <select id="batch-shift" name="waktu_produksi" required class="form-input">
-                        <option value="Shift Pagi">Shift Pagi</option>
-                        <option value="Shift Siang">Shift Siang</option>
-                        <option value="Shift Sore">Shift Sore</option>
-                    </select>
-                </div>
-                <div class="form-field">
-                    <label class="form-label" for="batch-ket">Catatan Dapur (Opsional)</label>
-                    <input id="batch-ket" type="text" name="ket" placeholder="Misal: Prioritas wajan 1 &amp; 2" class="form-input">
-                </div>
+            <div class="form-field">
+                <label class="form-label" for="batch-ket">Catatan Dapur (Opsional)</label>
+                <input id="batch-ket" type="text" name="ket" placeholder="Misal: Prioritas wajan 1 &amp; 2" class="form-input">
             </div>
 
             <div class="form-box">
                 <div class="form-box-head">
                     <span>Daftar varian produk &amp; target goreng (pcs) *</span>
-                    <button type="button" class="btn outline" onclick="addBatchItemRow()">+ Tambah produk</button>
+                    <span id="batch-po-lock-badge" class="tag ok is-hidden">Terkunci sesuai PO</span>
+                    <button type="button" id="btn-add-batch-item" class="btn outline" onclick="addBatchItemRow()">+ Tambah produk</button>
                 </div>
                 <div id="batch-items-container" class="form-grid">
                     <div class="inline-item-row">
@@ -403,7 +404,7 @@
     <div class="modal-body">
         <div class="modal-meta">
             <div>
-                <span>Batch &amp; Shift</span>
+                <span>Kode &amp; Tanggal Batch</span>
                 <b id="qcs-batch">-</b>
             </div>
             <div>
@@ -458,6 +459,25 @@
         document.getElementById('tgl-produksi-stok').value = val;
     }
 
+    function isBatchPoLocked() {
+        var mode = document.getElementById('batch-mode-input').value;
+        var poId = document.getElementById('batch-po-select').value;
+        var po = poBatchUiMap[String(poId)];
+        return mode === 'po' && Boolean(po && po.items && po.items.length > 0);
+    }
+
+    function syncPoLockUi(locked) {
+        var addBtn = document.getElementById('btn-add-batch-item');
+        var badge = document.getElementById('batch-po-lock-badge');
+        var note = document.getElementById('batch-po-lock-note');
+        if (addBtn) {
+            addBtn.disabled = locked;
+            addBtn.classList.toggle('is-hidden', locked);
+        }
+        if (badge) badge.classList.toggle('is-hidden', !locked);
+        if (note) note.classList.toggle('is-hidden', !locked);
+    }
+
     function switchBatchMode(mode) {
         var isPo = mode === 'po';
         document.getElementById('batch-mode-input').value = isPo ? 'po' : 'stok_gudang';
@@ -469,24 +489,50 @@
         if (!isPo) {
             document.getElementById('batch-po-select').value = '';
         }
+        prefillItemsFromPo();
     }
 
-    function createBatchItemRow(selectedId, qtyVal) {
+    function createBatchItemRow(selectedId, qtyVal, isLocked) {
         var tpl = document.getElementById('tpl-batch-item-row');
         var fragment = tpl.content.cloneNode(true);
         var row = fragment.querySelector('.inline-item-row');
         var select = row.querySelector('select');
         var qtyInput = row.querySelector('input[type="number"]');
+        var removeBtn = row.querySelector('.row-remove-btn');
         if (selectedId) select.value = String(selectedId);
         if (qtyVal) qtyInput.value = Number(qtyVal);
+
+        if (isLocked) {
+            select.disabled = true;
+            select.classList.add('is-locked');
+            select.removeAttribute('name');
+            var hiddenProd = document.createElement('input');
+            hiddenProd.type = 'hidden';
+            hiddenProd.name = 'produk_ids[]';
+            hiddenProd.value = String(selectedId || '');
+            row.appendChild(hiddenProd);
+
+            qtyInput.readOnly = true;
+            qtyInput.min = String(Number(qtyVal || 1));
+            qtyInput.classList.add('is-locked');
+            qtyInput.setAttribute('aria-readonly', 'true');
+            qtyInput.title = 'Qty dikunci sesuai pesanan PO dan tidak boleh diturunkan';
+
+            if (removeBtn) {
+                removeBtn.disabled = true;
+                removeBtn.classList.add('is-hidden');
+            }
+        }
         return row;
     }
 
     function addBatchItemRow() {
-        document.getElementById('batch-items-container').appendChild(createBatchItemRow('', 50));
+        if (isBatchPoLocked()) return;
+        document.getElementById('batch-items-container').appendChild(createBatchItemRow('', 50, false));
     }
 
     function removeBatchItemRow(btn) {
+        if (isBatchPoLocked()) return;
         var container = document.getElementById('batch-items-container');
         if (container.querySelectorAll('.inline-item-row').length > 1) {
             btn.closest('.inline-item-row').remove();
@@ -497,16 +543,19 @@
 
     function prefillItemsFromPo() {
         var poId = document.getElementById('batch-po-select').value;
+        var isPoMode = document.getElementById('batch-mode-input').value === 'po';
         var container = document.getElementById('batch-items-container');
         var po = poBatchUiMap[String(poId)];
+        var locked = isPoMode && Boolean(po && po.items && po.items.length > 0);
         container.textContent = '';
-        if (po && po.items && po.items.length > 0) {
+        if (locked) {
             po.items.forEach(function (item) {
-                container.appendChild(createBatchItemRow(item.id_produk_jadi, item.qty));
+                container.appendChild(createBatchItemRow(item.id_produk_jadi, item.qty, true));
             });
         } else {
-            container.appendChild(createBatchItemRow('', 50));
+            container.appendChild(createBatchItemRow('', 50, false));
         }
+        syncPoLockUi(locked);
     }
 
     function openBatchModal(mode) {
@@ -520,8 +569,8 @@
         if (!data) return;
 
         document.getElementById('form-complete-qc').action = '/log-produksi/complete-qc/' + batchId;
-        document.getElementById('qc-modal-subtitle').textContent = data.kode + ' \u00B7 ' + data.tanggal + ' (' + data.shift + ')';
-        document.getElementById('qc-info-kode').textContent = data.kode + ' (' + data.shift + ')';
+        document.getElementById('qc-modal-subtitle').textContent = data.kode + ' \u00B7 ' + data.tanggal;
+        document.getElementById('qc-info-kode').textContent = data.kode;
         document.getElementById('qc-info-po').textContent = data.po_kode + ' \u2014 ' + data.pelanggan;
         document.getElementById('qc-grade-b').value = 0;
         document.getElementById('qc-ket').value = '';
@@ -565,7 +614,7 @@
         if (!data) return;
 
         document.getElementById('qcs-subtitle').textContent = data.kode + ' \u00B7 Lulus Quality Control';
-        document.getElementById('qcs-batch').textContent = data.kode + ' (' + data.tanggal + ', ' + data.shift + ')';
+        document.getElementById('qcs-batch').textContent = data.kode + ' (' + data.tanggal + ')';
         document.getElementById('qcs-po').textContent = data.po_kode + ' \u2014 ' + data.pelanggan;
         document.getElementById('qcs-grades').textContent =
             Number(data.grade_a).toLocaleString('id-ID') + ' Grade A / ' +

@@ -115,12 +115,11 @@ body.nav-drawer-open {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.nav a::before {
-  content: "";
-  width: 11px;
-  height: 11px;
-  border-radius: var(--radius-circle);
-  border: 2px solid currentColor;
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
   flex: none;
 }
 
@@ -134,9 +133,8 @@ body.nav-drawer-open {
   color: var(--cream);
 }
 
-.nav a[aria-current="page"]::before {
-  background: var(--color-disc-fill-dot);
-  border-color: var(--color-disc-fill-dot);
+.nav a[aria-current="page"] .nav-icon {
+  color: var(--color-disc-fill-dot);
 }
 
 .n {
@@ -222,6 +220,9 @@ body.nav-drawer-open {
 
 .out a,
 .out-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--soft);
   text-decoration: none;
   font: inherit;
@@ -341,6 +342,17 @@ main {
   line-height: 1.25;
   text-align: center;
   transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.btn.has-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn.has-icon svg {
+  flex: none;
 }
 
 .btn:hover {
@@ -766,6 +778,36 @@ h2 {
 .stub-card > div {
   padding: var(--space-4) 18px;
   min-width: 0;
+}
+
+.stub-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-grid;
+  place-items: center;
+  margin-bottom: 10px;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.stub-icon.is-warm {
+  background: var(--color-warning-soft);
+  color: var(--caramel);
+  border-color: transparent;
+}
+
+.stub-icon.is-alert {
+  background: var(--color-danger-soft);
+  color: var(--alert-ink);
+  border-color: transparent;
+}
+
+.stub-icon.is-ok {
+  background: var(--color-success-soft);
+  color: var(--ok);
+  border-color: transparent;
 }
 
 .stub-card b {
@@ -1674,6 +1716,15 @@ dialog.modal::backdrop {
 
 .form-input.is-qty {
   width: 112px;
+}
+
+.form-input.is-locked,
+.form-input[readonly] {
+  background: var(--panel);
+  color: var(--ink);
+  border-style: dashed;
+  opacity: 0.9;
+  cursor: not-allowed;
 }
 
 .form-hint {
@@ -2728,6 +2779,72 @@ dialog.modal::backdrop {
 .chart-head > div {
   min-width: 0;
   flex: 1 1 200px;
+}
+
+.dash-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-title-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.chart-title-wrap > div {
+  min-width: 0;
+}
+
+.chart-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--bg);
+  color: var(--caramel);
+  border: 1px solid var(--line);
+}
+
+.chart-icon.is-ok {
+  background: var(--color-success-soft);
+  color: var(--ok);
+  border-color: transparent;
+}
+
+.chart-icon.is-warm {
+  background: var(--color-warning-soft);
+  color: var(--caramel);
+  border-color: transparent;
+}
+
+.chart-icon.is-alert {
+  background: var(--color-danger-soft);
+  color: var(--alert-ink);
+  border-color: transparent;
+}
+
+.section-heading-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.section-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--panel);
+  color: var(--caramel);
+  border: 1px solid var(--line);
 }
 
 .chart-head .sub {

@@ -317,6 +317,7 @@
             <div class="form-field">
                 <label class="form-label" for="add-nama-bahan">Nama Bahan Baku *</label>
                 <input id="add-nama-bahan" type="text" name="nama_bahan" required placeholder="Misal: Tepung Tapioka Super" class="form-input">
+                <p class="form-hint">Nama bahan harus unik (contoh: jika Gas Pink sudah ada, tidak dapat ditambahkan lagi).</p>
             </div>
 
             <div class="form-grid two">
@@ -362,6 +363,7 @@
             <div class="form-field">
                 <label class="form-label" for="edit-nama-bahan">Nama Bahan Baku *</label>
                 <input type="text" id="edit-nama-bahan" name="nama_bahan" required class="form-input">
+                <p class="form-hint">Nama bahan bersifat unik di seluruh daftar bahan baku.</p>
             </div>
 
             <div class="form-grid two">

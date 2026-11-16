@@ -16,7 +16,13 @@
 
 <section class="masthead" aria-labelledby="judul">
     <div>
-        <span class="eyebrow">Ringkasan &amp; analitik</span>
+        <span class="eyebrow dash-eyebrow">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 3v18h18" />
+                <path d="m19 9-5 5-4-4-3 3" />
+            </svg>
+            Ringkasan &amp; analitik
+        </span>
         <h1 id="judul">Dasbor grafik operasional</h1>
         <p>
             @if(($poActiveCount ?? 0) > 0)
@@ -28,11 +34,33 @@
     </div>
     <div class="acts">
         @if(($stokKritisCount ?? 0) > 0)
-            <a class="btn" href="{{ route('raw-materials.index') }}">Belanja bahan baku</a>
+            <a class="btn has-icon" href="{{ route('raw-materials.index') }}">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                    <path d="M3 6h18" />
+                    <path d="M16 10a4 4 0 0 1-8 0" />
+                </svg>
+                Belanja bahan baku
+            </a>
         @else
-            <a class="btn" href="{{ route('po-produk.index') }}">Kelola antrean PO</a>
+            <a class="btn has-icon" href="{{ route('po-produk.index') }}">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                    <path d="M12 11h4" />
+                    <path d="M12 16h4" />
+                    <path d="M8 11h.01" />
+                    <path d="M8 16h.01" />
+                </svg>
+                Kelola antrean PO
+            </a>
         @endif
-        <a class="btn outline" href="{{ route('log-produksi.index') }}">Catat batch produksi</a>
+        <a class="btn outline has-icon" href="{{ route('log-produksi.index') }}">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+            </svg>
+            Catat batch produksi
+        </a>
     </div>
 </section>
 
@@ -43,36 +71,84 @@
         :value="number_format($poActiveCount ?? 0)"
         unit="pesanan"
         :variant="($poActiveCount ?? 0) > 0 ? 'warm' : null"
-    />
+        iconTone="warm"
+    >
+        <x-slot:icon>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+                <path d="M14 2v6h6" />
+                <path d="M16 13H8" />
+                <path d="M16 17H8" />
+                <path d="M10 9H8" />
+            </svg>
+        </x-slot:icon>
+    </x-stub-card>
+
     <x-stub-card
         title="Bahan di bawah batas"
         subtitle="Stok &le; 10 unit (min. aman)"
         :value="number_format($stokKritisCount ?? 0)"
         unit="bahan"
         :variant="($stokKritisCount ?? 0) > 0 ? 'alert' : null"
-    />
+        :iconTone="($stokKritisCount ?? 0) > 0 ? 'alert' : 'ok'"
+    >
+        <x-slot:icon>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+            </svg>
+        </x-slot:icon>
+    </x-stub-card>
+
     <x-stub-card
         title="Lolos QC Grade A"
         subtitle="{{ number_format($totalBatchProduksi ?? 0) }} batch &middot; Grade B: {{ number_format($totalGradeB ?? 0) }}"
         :value="number_format($totalGradeA ?? 0)"
         unit="pcs"
-    />
+        iconTone="ok"
+    >
+        <x-slot:icon>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+                <path d="m9 12 2 2 4-4" />
+            </svg>
+        </x-slot:icon>
+    </x-stub-card>
+
     <x-stub-card
         title="Stok produk jadi"
         subtitle="Aset Rp {{ number_format($totalNilaiAsetFg ?? 0, 0, ',', '.') }}"
         :value="number_format($totalStokFg ?? 0)"
         unit="pcs"
         variant="warm"
-    />
+        iconTone="warm"
+    >
+        <x-slot:icon>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                <path d="m3.3 7 8.7 5 8.7-5" />
+                <path d="M12 22V12" />
+            </svg>
+        </x-slot:icon>
+    </x-stub-card>
 </section>
 
 <section class="dash-charts" aria-label="Grafik analitik operasional">
     {{-- Grafik 1: Tren Permintaan PO vs Output Produksi --}}
     <article class="chart-card" aria-labelledby="ch-trend">
         <div class="chart-head">
-            <div>
-                <h2 id="ch-trend">Tren PO &amp; output produksi</h2>
-                <p class="sub">Perbandingan jumlah pesanan masuk dan hasil produksi per tanggal.</p>
+            <div class="chart-title-wrap">
+                <span class="chart-icon is-warm" aria-hidden="true">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                        <polyline points="16 7 22 7 22 13" />
+                    </svg>
+                </span>
+                <div>
+                    <h2 id="ch-trend">Tren PO &amp; output produksi</h2>
+                    <p class="sub">Perbandingan jumlah pesanan masuk dan hasil produksi per tanggal.</p>
+                </div>
             </div>
             <a class="chart-link" href="{{ route('log-produksi.index') }}">Log produksi</a>
         </div>
@@ -177,9 +253,17 @@
     {{-- Grafik 2: Distribusi Status PO Pelanggan --}}
     <article class="chart-card" aria-labelledby="ch-status">
         <div class="chart-head">
-            <div>
-                <h2 id="ch-status">Distribusi status PO</h2>
-                <p class="sub">Komposisi pesanan pelanggan berdasarkan tahapan alur kerja.</p>
+            <div class="chart-title-wrap">
+                <span class="chart-icon is-warm" aria-hidden="true">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
+                        <path d="M22 12A10 10 0 0 0 12 2v10z" />
+                    </svg>
+                </span>
+                <div>
+                    <h2 id="ch-status">Distribusi status PO</h2>
+                    <p class="sub">Komposisi pesanan pelanggan berdasarkan tahapan alur kerja.</p>
+                </div>
             </div>
             <a class="chart-link" href="{{ route('po-produk.index') }}">Kelola PO</a>
         </div>
@@ -252,9 +336,18 @@
     {{-- Grafik 3: Permintaan PO vs Stok Produk Jadi --}}
     <article class="chart-card" aria-labelledby="ch-produk">
         <div class="chart-head">
-            <div>
-                <h2 id="ch-produk">Permintaan PO vs stok jadi</h2>
-                <p class="sub">Produk teratas berdasarkan alokasi PO aktif dibanding stok gudang.</p>
+            <div class="chart-title-wrap">
+                <span class="chart-icon is-ok" aria-hidden="true">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
+                        <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65" />
+                        <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" />
+                    </svg>
+                </span>
+                <div>
+                    <h2 id="ch-produk">Permintaan PO vs stok jadi</h2>
+                    <p class="sub">Produk teratas berdasarkan alokasi PO aktif dibanding stok gudang.</p>
+                </div>
             </div>
             <a class="chart-link" href="{{ route('finished-goods.index') }}">Produk jadi</a>
         </div>
@@ -317,9 +410,18 @@
     {{-- Grafik 4: Stok Bahan Baku Terendah vs Batas Minimum --}}
     <article class="chart-card" aria-labelledby="ch-bahan">
         <div class="chart-head">
-            <div>
-                <h2 id="ch-bahan">Stok bahan baku terendah</h2>
-                <p class="sub">8 bahan dengan persediaan terkecil dibanding batas aman 10 unit.</p>
+            <div class="chart-title-wrap">
+                <span class="chart-icon {{ ($stokKritisCount ?? 0) > 0 ? 'is-alert' : 'is-ok' }}" aria-hidden="true">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v18h18" />
+                        <rect width="4" height="7" x="7" y="10" rx="1" />
+                        <rect width="4" height="12" x="15" y="5" rx="1" />
+                    </svg>
+                </span>
+                <div>
+                    <h2 id="ch-bahan">Stok bahan baku terendah</h2>
+                    <p class="sub">8 bahan dengan persediaan terkecil dibanding batas aman 10 unit.</p>
+                </div>
             </div>
             <a class="chart-link" href="{{ route('raw-materials.index') }}">Stok bahan</a>
         </div>
@@ -416,7 +518,17 @@
 <div class="grid">
     <section aria-labelledby="h-po">
         <div class="head">
-            <h2 id="h-po">PO terbaru dari pelanggan</h2>
+            <h2 id="h-po" class="section-heading-wrap">
+                <span class="section-icon" aria-hidden="true">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+                        <path d="M14 8H8" />
+                        <path d="M16 12H8" />
+                        <path d="M13 16H8" />
+                    </svg>
+                </span>
+                PO terbaru dari pelanggan
+            </h2>
             <a href="{{ route('po-produk.index') }}">Lihat semua PO</a>
         </div>
         @php
@@ -465,7 +577,14 @@
 
     <section aria-labelledby="h-batch">
         <div class="head">
-            <h2 id="h-batch">Batch produksi dapur terbaru</h2>
+            <h2 id="h-batch" class="section-heading-wrap">
+                <span class="section-icon" aria-hidden="true">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+                    </svg>
+                </span>
+                Batch produksi dapur terbaru
+            </h2>
             <a href="{{ route('log-produksi.index') }}">Lihat semua batch</a>
         </div>
         <p class="sub">Lima batch terakhir beserta hasil sortir Grade A dan Grade B.</p>

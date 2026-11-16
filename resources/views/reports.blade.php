@@ -17,7 +17,6 @@
     <div>
         <span class="eyebrow">Pelaporan & audit cetak</span>
         <h1 id="j-reports">Pusat laporan operasional</h1>
-        <p>Filter dan cetak laporan stok produk jadi, pengadaan bahan baku, log produksi QC, penjualan PO, hingga pengiriman Surat Jalan beserta arsip log cetak.</p>
     </div>
     <div class="acts">
         <button type="button" class="btn" onclick="openFilterModal()">+ Filter & cetak laporan</button>
